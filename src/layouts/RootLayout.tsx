@@ -16,17 +16,18 @@ export function RootLayout() {
   }, [location.pathname]);
 
   return (
-    <div className="flex min-h-svh flex-col bg-surface theme-ease">
+    <div className="flex min-h-svh flex-col overflow-x-hidden bg-surface theme-ease">
       <RouteProgress />
       <SiteNav />
-      <main id="main" tabIndex={-1} className="flex-1 pt-24 outline-none sm:pt-28">
+      <main id="main" tabIndex={-1} className="flex-1 overflow-x-hidden pt-[5.5rem] outline-none sm:pt-28">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={location.pathname}
-            initial={reduce ? false : { opacity: 0, y: 12 }}
+            initial={reduce ? false : { opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={reduce ? undefined : { opacity: 0, y: -8 }}
+            exit={reduce ? undefined : { opacity: 0, y: -6 }}
             transition={{ duration: reduce ? 0 : 0.28, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-x-hidden"
           >
             {outlet}
           </motion.div>

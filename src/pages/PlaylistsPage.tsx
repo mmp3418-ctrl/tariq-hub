@@ -51,11 +51,11 @@ export function PlaylistsPage() {
   return (
     <Shell className="pb-20">
       <Folio index="04" label={t("folioPlaylists")} />
-      <header className="glass flex flex-col gap-8 rounded-2xl p-6 pt-8 sm:p-8 lg:flex-row lg:items-end lg:justify-between">
+      <header className="glass flex flex-col gap-6 rounded-2xl p-5 pt-7 sm:gap-8 sm:p-8 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-2xl">
           <p className="text-sm text-teal">{t("playlistsKind")}</p>
-          <h1 className="mt-3 text-4xl font-bold leading-tight sm:text-6xl">{t("playlistsHeading")}</h1>
-          <p className="mt-5 text-base leading-8 text-muted">{t("playlistsLead")}</p>
+          <h1 className="mt-3 text-3xl font-bold leading-tight md:text-5xl lg:text-6xl">{t("playlistsHeading")}</h1>
+          <p className="mt-4 text-sm leading-7 text-muted sm:mt-5 sm:text-base sm:leading-8">{t("playlistsLead")}</p>
         </div>
         <label className="glass flex w-full max-w-sm items-center gap-3 rounded-xl px-3 py-2.5">
           <Search className="size-4 text-teal" />

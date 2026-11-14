@@ -22,7 +22,8 @@ const LOCALE_KEY = "tariq-locale";
 function readTheme(): Theme {
   const saved = localStorage.getItem(THEME_KEY);
   if (saved === "light" || saved === "dark") return saved;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  // First-time visitors always land in Light Mode.
+  return "light";
 }
 
 function readLocale(): Locale {
@@ -40,6 +41,8 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     root.dataset.theme = theme;
     root.style.colorScheme = theme;
     localStorage.setItem(THEME_KEY, theme);
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", theme === "dark" ? "#0B132B" : "#F8FAFC");
   }, [theme]);
 
   useEffect(() => {

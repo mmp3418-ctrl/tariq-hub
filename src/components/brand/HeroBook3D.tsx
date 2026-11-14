@@ -57,7 +57,7 @@ export function HeroBook3D({ className = "" }: HeroBook3DProps) {
   return (
     <div
       ref={sceneRef}
-      className={`hero-book-scene relative mx-auto flex w-full max-w-[300px] items-center justify-center sm:max-w-[340px] lg:max-w-none ${className}`}
+      className={`hero-book-scene relative mx-auto flex w-full max-w-[220px] items-center justify-center sm:max-w-[300px] lg:max-w-none ${className}`}
       onPointerMove={onMove}
       onPointerLeave={onLeave}
       aria-hidden="true"
@@ -65,7 +65,7 @@ export function HeroBook3D({ className = "" }: HeroBook3DProps) {
       <div className="pointer-events-none absolute inset-x-[8%] bottom-[4%] h-[22%] rounded-[50%] bg-emerald/40 blur-3xl" />
 
       <motion.div
-        className="hero-book-float relative aspect-[3/4] w-[min(100%,250px)] sm:w-[270px] lg:w-[290px]"
+        className="hero-book-float relative aspect-[3/4] w-[min(100%,200px)] sm:w-[250px] lg:w-[280px]"
         initial={reduce ? false : { opacity: 0, y: 24, scale: 0.94 }}
         animate={
           reduce
