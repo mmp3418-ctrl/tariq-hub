@@ -162,16 +162,27 @@ h3 {
   }
 
   .glass-nav {
-    background: var(--nav-bg);
-    border: 1px solid rgb(255 255 255 / 0.1);
-    box-shadow:
-      0 8px 30px rgb(0 0 0 / 0.12),
-      0 1px 0 rgb(255 255 255 / 0.06) inset;
-    color: #ffffff;
+    background: rgb(255 255 255 / 0.8);
+    border: 1px solid rgb(226 232 240 / 0.85);
+    border-bottom-color: rgb(226 232 240 / 0.95);
+    border-radius: 0.85rem;
+    box-shadow: 0 8px 24px rgb(15 23 42 / 0.06);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #0f172a;
     transition:
       background-color 300ms ease-in-out,
       border-color 300ms ease-in-out,
-      box-shadow 300ms ease-in-out;
+      box-shadow 300ms ease-in-out,
+      color 300ms ease-in-out;
+  }
+
+  html.dark .glass-nav {
+    background: rgb(15 23 42 / 0.8);
+    border-color: rgb(51 65 85 / 0.75);
+    border-bottom-color: rgb(51 65 85 / 0.9);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.28);
+    color: #ffffff;
   }
 
   .surface-dark {
@@ -234,10 +245,6 @@ h3 {
   .hero-book-face {
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
-  }
-
-  .hero-book-cover {
-    transform: translateZ(15px);
   }
 
   .hero-book-spine {

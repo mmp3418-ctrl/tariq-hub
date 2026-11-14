@@ -122,6 +122,8 @@ const ar: Dict = {
   zoomOut: "تصغير",
   enterFullscreen: "ملء الشاشة",
   exitFullscreen: "إنهاء ملء الشاشة",
+  openBook: "فتح كتاب طارق Hub",
+  closeBook: "إغلاق كتاب طارق Hub",
 };
 
 const en: Dict = {
@@ -244,6 +246,8 @@ const en: Dict = {
   zoomOut: "Zoom out",
   enterFullscreen: "Full screen",
   exitFullscreen: "Exit full screen",
+  openBook: "Open Tariq Hub book",
+  closeBook: "Close Tariq Hub book",
 };
 
 export const messages: Record<Locale, Dict> = { ar, en };

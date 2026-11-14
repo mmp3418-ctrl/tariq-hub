@@ -53,7 +53,7 @@ export function HomePage() {
 
       <Shell className="mt-5">
         <section className="grid grid-cols-1 gap-4 lg:min-h-[calc(100svh-10rem)] lg:grid-cols-12 lg:gap-5">
-          <div className="surface-dark relative isolate overflow-hidden rounded-2xl shadow-elevated lg:col-span-8">
+          <div className="surface-dark relative isolate overflow-x-clip overflow-y-visible rounded-2xl shadow-elevated lg:col-span-8">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(16,185,129,0.26),transparent_42%),radial-gradient(circle_at_92%_8%,rgba(255,255,255,0.08),transparent_34%)]" />
             <RouteDrawing reduce={Boolean(reduce)} />
 

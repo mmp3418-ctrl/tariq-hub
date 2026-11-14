@@ -14,9 +14,6 @@ const routes = [
   { to: "/contact", key: "contact", end: false },
 ] as const;
 
-const navItem =
-  "rounded-lg px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-offset-2";
-
 export function SiteNav({ sticky = true }: { sticky?: boolean }) {
   const { pathname } = useLocation();
   const reduce = useReducedMotion();
@@ -24,6 +21,7 @@ export function SiteNav({ sticky = true }: { sticky?: boolean }) {
   const { openSearch } = useSearch();
   const [open, setOpen] = useState(false);
   const CtaArrow = dir === "rtl" ? ArrowLeft : ArrowRight;
+  const isDark = theme === "dark";
 
   useEffect(() => {
     setOpen(false);
@@ -43,22 +41,34 @@ export function SiteNav({ sticky = true }: { sticky?: boolean }) {
     };
   }, [open]);
 
+  const iconBtn = isDark
+    ? "inline-flex size-9 items-center justify-center rounded-lg text-slate-200 transition hover:bg-white/10 hover:text-white"
+    : "inline-flex size-9 items-center justify-center rounded-lg text-slate-700 transition hover:bg-slate-900/5 hover:text-slate-900";
+
+  const linkBase = isDark
+    ? "rounded-md px-2.5 py-1.5 text-[13px] font-medium text-slate-200 transition hover:bg-white/10 hover:text-white"
+    : "rounded-md px-2.5 py-1.5 text-[13px] font-medium text-slate-700 transition hover:bg-slate-900/5 hover:text-slate-900";
+
   return (
-    <header className={`${sticky ? "fixed inset-x-0 top-0 z-50" : "relative z-50"} px-3 pt-3 sm:px-5`}>
+    <header className={`${sticky ? "fixed inset-x-0 top-0 z-50" : "relative z-50"} px-3 pt-2 sm:px-4 sm:pt-2.5`}>
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:start-3 focus:z-[90] focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:text-ink"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:start-2 focus:z-[90] focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:text-ink"
       >
         {t("skip")}
       </a>
 
-      <div className="glass-nav relative z-50 mx-auto max-w-6xl rounded-2xl">
-        <div className="flex items-center justify-between gap-2 px-3 py-2.5 sm:gap-3 sm:px-4">
-          <Link to="/" className="flex min-w-0 items-center gap-2.5 rounded-md sm:gap-3" aria-label={t("brandAria")}>
-            <Mark />
+      <div className="glass-nav relative z-50 mx-auto max-w-6xl">
+        <div className="flex h-12 items-center justify-between gap-2 px-2.5 sm:h-[3.25rem] sm:gap-3 sm:px-3">
+          <Link to="/" className="flex min-w-0 items-center gap-2 rounded-md" aria-label={t("brandAria")}>
+            <span className="scale-90 origin-center sm:scale-100">
+              <Mark />
+            </span>
             <span className="flex min-w-0 flex-col leading-none">
-              <span className="font-display text-[10px] font-semibold tracking-[0.28em] text-emerald">TARIQ HUB</span>
-              <span className="mt-1 truncate text-base font-bold text-white sm:text-lg">{t("brandName")}</span>
+              <span className="font-display text-[9px] font-semibold tracking-[0.22em] text-emerald">TARIQ HUB</span>
+              <span className={`mt-0.5 truncate text-sm font-bold sm:text-[15px] ${isDark ? "text-white" : "text-slate-900"}`}>
+                {t("brandName")}
+              </span>
             </span>
           </Link>
 
@@ -68,57 +78,53 @@ export function SiteNav({ sticky = true }: { sticky?: boolean }) {
                 key={link.to}
                 to={link.to}
                 end={link.end}
-                className={({ isActive }) => `${navItem} ${isActive ? "!bg-white/10 !text-emerald" : ""}`}
+                className={({ isActive }) =>
+                  `${linkBase} ${isActive ? (isDark ? "!bg-emerald-500/15 !text-emerald-400" : "!bg-emerald-500/10 !text-teal") : ""}`
+                }
               >
                 {t(link.key)}
               </NavLink>
             ))}
           </nav>
 
-          <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
-            <button
-              type="button"
-              onClick={openSearch}
-              className="inline-flex size-11 items-center justify-center rounded-xl text-white transition hover:bg-white/10"
-              aria-label={t("search")}
-              title={`${t("search")} (Ctrl+K)`}
-            >
-              <Search className="size-4" />
+          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
+            <button type="button" onClick={openSearch} className={iconBtn} aria-label={t("search")} title={`${t("search")} (Ctrl+K)`}>
+              <Search className="size-3.5" />
             </button>
             <button
               type="button"
               onClick={toggleLocale}
-              className="inline-flex size-11 items-center justify-center rounded-xl text-white transition hover:bg-white/10"
+              className={iconBtn}
               aria-label={locale === "ar" ? t("langToEn") : t("langToAr")}
               title={locale === "ar" ? t("langToEn") : t("langToAr")}
             >
-              <Languages className="size-4" />
+              <Languages className="size-3.5" />
             </button>
             <button
               type="button"
               onClick={toggleTheme}
-              className="inline-flex size-11 items-center justify-center rounded-xl text-white transition hover:bg-white/10"
+              className={iconBtn}
               aria-label={theme === "dark" ? t("themeLight") : t("themeDark")}
               title={theme === "dark" ? t("themeLight") : t("themeDark")}
             >
-              {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+              {theme === "dark" ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
             </button>
             <Link
               to="/grades"
-              className="brand-gradient hidden items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-white shadow-[0_12px_30px_-14px_rgba(16,185,129,0.95)] transition hover:brightness-110 sm:inline-flex"
+              className="brand-gradient ms-0.5 hidden items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-white shadow-[0_8px_20px_-12px_rgba(16,185,129,0.9)] transition hover:brightness-110 sm:inline-flex"
             >
               {t("startStudy")}
-              <CtaArrow className="size-4" />
+              <CtaArrow className="size-3.5" />
             </Link>
             <button
               type="button"
-              className="inline-flex size-11 items-center justify-center rounded-xl text-white transition hover:bg-white/10 lg:hidden"
+              className={`${iconBtn} lg:hidden`}
               aria-expanded={open}
               aria-controls="mobile-nav-drawer"
               onClick={() => setOpen((value) => !value)}
             >
               <span className="sr-only">{open ? t("closeMenu") : t("openMenu")}</span>
-              {open ? <X className="size-5" /> : <Menu className="size-5" />}
+              {open ? <X className="size-4" /> : <Menu className="size-4" />}
             </button>
           </div>
         </div>
@@ -130,7 +136,7 @@ export function SiteNav({ sticky = true }: { sticky?: boolean }) {
             <motion.button
               type="button"
               aria-label={t("closeMenu")}
-              className="fixed inset-0 z-40 bg-ink/45 backdrop-blur-[2px] lg:hidden"
+              className="fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-[2px] lg:hidden"
               initial={reduce ? false : { opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={reduce ? undefined : { opacity: 0 }}
@@ -142,13 +148,15 @@ export function SiteNav({ sticky = true }: { sticky?: boolean }) {
               role="dialog"
               aria-modal="true"
               aria-label={t("openMenu")}
-              className="fixed inset-x-3 top-[4.75rem] z-50 max-h-[min(78svh,640px)] overflow-y-auto rounded-2xl border border-white/10 bg-ink p-3 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.55)] sm:inset-x-5 lg:hidden"
-              initial={reduce ? false : { opacity: 0, y: -12, scale: 0.98 }}
+              className={`fixed inset-x-3 top-[3.75rem] z-50 max-h-[min(78svh,640px)] overflow-y-auto rounded-xl border p-2.5 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:inset-x-4 lg:hidden ${
+                isDark ? "border-slate-700/80 bg-slate-900/95" : "border-slate-200/80 bg-white/95"
+              }`}
+              initial={reduce ? false : { opacity: 0, y: -10, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={reduce ? undefined : { opacity: 0, y: -10, scale: 0.98 }}
-              transition={{ type: "spring", stiffness: 380, damping: 32, mass: 0.7 }}
+              exit={reduce ? undefined : { opacity: 0, y: -8, scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 400, damping: 34, mass: 0.65 }}
             >
-              <nav className="flex flex-col gap-1" aria-label={t("openMenu")}>
+              <nav className="flex flex-col gap-0.5" aria-label={t("openMenu")}>
                 {routes.map((link) => (
                   <NavLink
                     key={link.to}
@@ -156,8 +164,12 @@ export function SiteNav({ sticky = true }: { sticky?: boolean }) {
                     end={link.end}
                     onClick={() => setOpen(false)}
                     className={({ isActive }) =>
-                      `flex min-h-12 items-center rounded-xl px-4 text-base font-semibold transition ${
-                        isActive ? "bg-emerald/15 text-emerald" : "text-white hover:bg-white/10"
+                      `flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold transition ${
+                        isActive
+                          ? "bg-emerald-500/15 text-teal"
+                          : isDark
+                            ? "text-white hover:bg-white/10"
+                            : "text-slate-900 hover:bg-slate-100"
                       }`
                     }
                   >
@@ -172,28 +184,38 @@ export function SiteNav({ sticky = true }: { sticky?: boolean }) {
                   setOpen(false);
                   openSearch();
                 }}
-                className="mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                className={`mt-2 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border px-3 text-sm font-semibold transition ${
+                  isDark
+                    ? "border-slate-700 bg-slate-800 text-white hover:bg-slate-700"
+                    : "border-slate-200 bg-slate-50 text-slate-900 hover:bg-slate-100"
+                }`}
               >
-                <Search className="size-4 text-emerald" />
+                <Search className="size-3.5 text-emerald" />
                 {t("search")}
-                <span className="ms-auto font-display text-[10px] tracking-wide text-white/50">Ctrl+K</span>
+                <span className={`ms-auto font-display text-[10px] tracking-wide ${isDark ? "text-slate-500" : "text-slate-400"}`}>
+                  Ctrl+K
+                </span>
               </button>
 
-              <div className="mt-2 grid grid-cols-2 gap-2">
+              <div className="mt-1.5 grid grid-cols-2 gap-1.5">
                 <button
                   type="button"
                   onClick={toggleLocale}
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                  className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-semibold ${
+                    isDark ? "border-slate-700 bg-slate-800 text-white" : "border-slate-200 bg-slate-50 text-slate-900"
+                  }`}
                 >
-                  <Languages className="size-4 text-emerald" />
+                  <Languages className="size-3.5 text-emerald" />
                   {locale === "ar" ? "English" : "العربية"}
                 </button>
                 <button
                   type="button"
                   onClick={toggleTheme}
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                  className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-semibold ${
+                    isDark ? "border-slate-700 bg-slate-800 text-white" : "border-slate-200 bg-slate-50 text-slate-900"
+                  }`}
                 >
-                  {theme === "dark" ? <Sun className="size-4 text-emerald" /> : <Moon className="size-4 text-emerald" />}
+                  {theme === "dark" ? <Sun className="size-3.5 text-emerald" /> : <Moon className="size-3.5 text-emerald" />}
                   {theme === "dark" ? t("themeLight") : t("themeDark")}
                 </button>
               </div>
@@ -201,10 +223,10 @@ export function SiteNav({ sticky = true }: { sticky?: boolean }) {
               <Link
                 to="/grades"
                 onClick={() => setOpen(false)}
-                className="brand-gradient mt-3 inline-flex min-h-12 w-full items-center justify-between rounded-xl px-4 text-sm font-semibold text-white"
+                className="brand-gradient mt-2 inline-flex min-h-11 w-full items-center justify-between rounded-lg px-3 text-sm font-semibold text-white"
               >
                 {t("startStudy")}
-                <CtaArrow className="size-4" />
+                <CtaArrow className="size-3.5" />
               </Link>
             </motion.aside>
           </>
