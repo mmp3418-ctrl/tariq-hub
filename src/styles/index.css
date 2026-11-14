@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Class-based dark mode (html.dark) — not prefers-color-scheme */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: "Cairo", "Segoe UI", sans-serif;
   --font-display: "Plus Jakarta Sans", "Cairo", sans-serif;
@@ -209,6 +212,10 @@ h3 {
 
   .hairline-link:hover {
     background-size: 100% 1px;
+  }
+
+  .spotlight-card[data-spot="1"] > .spotlight-glow {
+    opacity: 1;
   }
 
   .hero-book-scene {

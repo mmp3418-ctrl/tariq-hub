@@ -52,7 +52,7 @@ export function PreviewDrawer({ note, onClose }: { note: CatalogNote | null; onC
             role="dialog"
             aria-modal="true"
             aria-labelledby="preview-title"
-            className={`glass-strong relative flex w-full flex-col overflow-hidden ${
+            className={`relative flex w-full flex-col overflow-hidden border border-white/20 bg-white/95 shadow-[0_30px_80px_-20px_rgba(15,23,42,0.55)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 ${
               fullscreen
                 ? "h-svh max-h-svh max-w-none rounded-none"
                 : "max-h-[92vh] max-w-4xl rounded-t-2xl sm:rounded-2xl"

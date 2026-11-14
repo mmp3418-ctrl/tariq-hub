@@ -4,8 +4,10 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { HeroBook3D } from "../components/brand/HeroBook3D.tsx";
 import { LearningPath } from "../components/home/LearningPath.tsx";
+import { AnimatedCounter } from "../components/ui/AnimatedCounter.tsx";
 import { Folio } from "../components/ui/Folio.tsx";
 import { Shell } from "../components/ui/Shell.tsx";
+import { SpotlightCard } from "../components/ui/SpotlightCard.tsx";
 import { gradeLabel, stageLabel, subjectLabel } from "../i18n/content.ts";
 import { usePageTitle } from "../lib/usePageTitle.ts";
 import { usePreferences } from "../lib/preferences.tsx";
@@ -112,14 +114,7 @@ export function HomePage() {
                 className="glass theme-ease flex min-h-[5.5rem] flex-col justify-end gap-2 rounded-2xl px-4 py-4 sm:px-5 sm:py-5 lg:flex-row lg:items-end lg:justify-between"
               >
                 <span className="text-xs text-muted sm:text-sm">{stat.label}</span>
-                <motion.span
-                  key={`${stat.label}-${stat.value}`}
-                  initial={reduce ? false : { opacity: 0.4, scale: 0.92 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="font-display text-3xl font-bold text-gradient sm:text-4xl"
-                >
-                  {stat.value}
-                </motion.span>
+                <AnimatedCounter value={stat.value} className="font-display text-3xl font-bold text-gradient sm:text-4xl" />
               </motion.div>
             ))}
           </div>
@@ -139,14 +134,17 @@ export function HomePage() {
             </div>
             <ul className="mt-8 grid gap-3 sm:mt-10 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
               {features.map((feature) => (
-                <li
+                <SpotlightCard
                   key={feature.title}
-                  className="glass theme-ease rounded-2xl p-5 transition hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-24px_rgba(16,185,129,0.55)]"
+                  as="li"
+                  className="glass theme-ease rounded-2xl transition hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-24px_rgba(16,185,129,0.55)]"
                 >
-                  <feature.icon className="size-5 text-teal" />
-                  <h3 className="mt-5 text-lg font-bold sm:text-xl">{feature.title}</h3>
-                  <p className="mt-2 text-sm leading-7 text-muted">{feature.text}</p>
-                </li>
+                  <div className="p-5">
+                    <feature.icon className="size-5 text-teal" />
+                    <h3 className="mt-5 text-lg font-bold text-slate-900 sm:text-xl dark:text-white">{feature.title}</h3>
+                    <p className="mt-2 text-sm leading-7 text-slate-600 dark:text-slate-300">{feature.text}</p>
+                  </div>
+                </SpotlightCard>
               ))}
             </ul>
           </div>
@@ -251,7 +249,7 @@ export function HomePage() {
           </div>
           <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
             {lessons.map((lesson) => (
-              <article key={lesson.id} className="glass overflow-hidden rounded-2xl">
+              <SpotlightCard key={lesson.id} as="article" className="glass overflow-hidden rounded-2xl">
                 <div className="aspect-video bg-navy">
                   <iframe
                     title={lesson.title}
@@ -266,11 +264,11 @@ export function HomePage() {
                   <p className="text-xs text-teal">
                     {gradeLabel(locale, lesson.gradeId, lesson.gradeTitle)} · {subjectLabel(locale, lesson.subjectCode, lesson.subjectTitle)}
                   </p>
-                  <h3 className="mt-2 text-lg font-bold sm:text-xl">
+                  <h3 className="mt-2 text-lg font-bold text-slate-900 sm:text-xl dark:text-white">
                     {locale === "en" ? `Lesson · ${subjectLabel(locale, lesson.subjectCode, lesson.subjectTitle)}` : lesson.title}
                   </h3>
                 </div>
-              </article>
+              </SpotlightCard>
             ))}
           </div>
         </Shell>

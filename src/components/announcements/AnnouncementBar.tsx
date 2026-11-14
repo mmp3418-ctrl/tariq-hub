@@ -49,11 +49,13 @@ export function AnnouncementBar() {
           className="overflow-hidden border-b border-emerald/20 bg-emerald/10"
         >
           <div className="mx-auto flex max-w-6xl items-start gap-3 px-4 py-2.5 sm:items-center sm:px-6 lg:px-8">
-            <span className="relative mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald/15 text-teal sm:mt-0">
-              <span className="absolute inset-0 animate-ping rounded-full bg-emerald/30" />
+            <span className="relative mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-teal sm:mt-0">
+              <span className="absolute start-1 top-1 size-2 rounded-full bg-[#10B981] shadow-[0_0_8px_#10B981]">
+                <span className="absolute inset-0 animate-ping rounded-full bg-[#10B981]/70" />
+              </span>
               <Megaphone className="relative size-3.5" />
             </span>
-            <p className="min-w-0 flex-1 text-sm leading-6 text-fg">
+            <p className="min-w-0 flex-1 text-sm leading-6 text-slate-900 dark:text-white">
               <span className="me-2 font-semibold text-teal">{t("liveUpdate")}</span>
               {message}
             </p>

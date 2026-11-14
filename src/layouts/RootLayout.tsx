@@ -6,6 +6,7 @@ import { MobileBottomNav } from "../components/navigation/MobileBottomNav.tsx";
 import { SiteFooter } from "../components/navigation/SiteFooter.tsx";
 import { SiteNav } from "../components/navigation/SiteNav.tsx";
 import { RouteProgress } from "../components/progress/RouteProgress.tsx";
+import { ScrollProgress } from "../components/progress/ScrollProgress.tsx";
 import { SpotlightSearch } from "../components/search/SpotlightSearch.tsx";
 
 export function RootLayout() {
@@ -34,6 +35,7 @@ export function RootLayout() {
   return (
     <div className="flex min-h-svh flex-col overflow-x-hidden bg-surface theme-ease">
       <RouteProgress />
+      <ScrollProgress />
       <div ref={headerRef} className="fixed inset-x-0 top-0 z-50">
         <AnnouncementBar />
         <SiteNav sticky={false} />

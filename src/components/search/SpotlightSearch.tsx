@@ -27,7 +27,9 @@ function highlight(text: string, query: string) {
   return (
     <>
       {text.slice(0, index)}
-      <mark className="rounded-sm bg-emerald/25 px-0.5 text-inherit">{text.slice(index, index + query.length)}</mark>
+      <mark className="rounded-sm bg-emerald-500/25 px-0.5 text-slate-900 dark:bg-emerald-400/30 dark:text-white">
+        {text.slice(index, index + query.length)}
+      </mark>
       {text.slice(index + query.length)}
     </>
   );
@@ -35,7 +37,7 @@ function highlight(text: string, query: string) {
 
 export function SpotlightSearch() {
   const { open, closeSearch } = useSearch();
-  const { t, locale, dir } = usePreferences();
+  const { t, locale, dir, theme } = usePreferences();
   const reduce = useReducedMotion();
   const navigate = useNavigate();
   const grades = useGrades();
@@ -81,11 +83,13 @@ export function SpotlightSearch() {
 
   const results = useMemo(() => {
     const needle = normalize(query);
-    return index.filter((hit) => {
-      if (category !== "all" && hit.category !== category) return false;
-      if (!needle) return true;
-      return normalize(`${hit.title} ${hit.meta}`).includes(needle);
-    }).slice(0, 12);
+    return index
+      .filter((hit) => {
+        if (category !== "all" && hit.category !== category) return false;
+        if (!needle) return true;
+        return normalize(`${hit.title} ${hit.meta}`).includes(needle);
+      })
+      .slice(0, 12);
   }, [category, index, query]);
 
   useEffect(() => {
@@ -134,20 +138,22 @@ export function SpotlightSearch() {
     }
   };
 
-  const iconFor = (category: Hit["category"]) => {
-    if (category === "pdf") return BookOpen;
-    if (category === "playlist") return Clapperboard;
+  const iconFor = (hitCategory: Hit["category"]) => {
+    if (hitCategory === "pdf") return BookOpen;
+    if (hitCategory === "playlist") return Clapperboard;
     return Layers;
   };
+
+  const isDark = theme === "dark";
 
   return (
     <AnimatePresence>
       {open ? (
-        <motion.div className="fixed inset-0 z-[100] flex items-start justify-center px-3 pt-[12vh] sm:px-6" role="presentation">
+        <motion.div className="fixed inset-0 z-[100] flex items-start justify-center px-3 pt-[10vh] sm:px-6" role="presentation">
           <motion.button
             type="button"
             aria-label={t("closeSearch")}
-            className="absolute inset-0 bg-ink/50 backdrop-blur-md"
+            className="absolute inset-0 bg-slate-950/55 backdrop-blur-md"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -157,75 +163,119 @@ export function SpotlightSearch() {
             role="dialog"
             aria-modal="true"
             aria-label={t("spotlightTitle")}
-            className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-white/15 bg-white/90 shadow-[0_30px_80px_-24px_rgba(15,23,42,0.55)] backdrop-blur-xl dark:border-slate-700/80 dark:bg-ink/92"
+            className={`relative w-full max-w-2xl overflow-hidden rounded-2xl border shadow-[0_30px_80px_-24px_rgba(15,23,42,0.55)] ${
+              isDark
+                ? "border-slate-700 bg-slate-900 text-white"
+                : "border-slate-200 bg-white text-slate-900"
+            }`}
             initial={reduce ? false : { opacity: 0, y: 16, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={reduce ? undefined : { opacity: 0, y: 10, scale: 0.98 }}
             transition={{ type: "spring", stiffness: 380, damping: 30 }}
             onKeyDown={onKeyDown}
           >
-            <div className="flex items-center gap-3 border-b border-line px-4 py-3">
-              <Search className="size-5 shrink-0 text-teal" />
+            <div className={`flex items-center gap-3 border-b px-4 py-3 ${isDark ? "border-slate-700" : "border-slate-200"}`}>
+              <Search className="size-5 shrink-0 text-emerald-500" />
               <input
                 ref={inputRef}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={t("spotlightPlaceholder")}
-                className="w-full bg-transparent text-base text-fg outline-none placeholder:text-muted"
+                className={`w-full bg-transparent text-base outline-none ${
+                  isDark
+                    ? "text-white placeholder:text-slate-400"
+                    : "text-slate-900 placeholder:text-slate-500"
+                }`}
                 dir={dir}
               />
-              <kbd className="hidden rounded-md border border-line px-2 py-1 font-display text-[10px] tracking-wide text-muted sm:inline">
+              <kbd
+                className={`hidden rounded-md border px-2 py-1 font-display text-[10px] tracking-wide sm:inline ${
+                  isDark ? "border-slate-600 text-slate-400" : "border-slate-200 text-slate-500"
+                }`}
+              >
                 ESC
               </kbd>
-              <button type="button" onClick={closeSearch} className="inline-flex size-9 items-center justify-center rounded-lg text-muted hover:bg-emerald/10 hover:text-fg" aria-label={t("closeSearch")}>
+              <button
+                type="button"
+                onClick={closeSearch}
+                className={`inline-flex size-9 items-center justify-center rounded-lg ${
+                  isDark ? "text-slate-300 hover:bg-slate-800 hover:text-white" : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                }`}
+                aria-label={t("closeSearch")}
+              >
                 <X className="size-4" />
               </button>
             </div>
 
-            <div className="flex flex-wrap gap-2 border-b border-line px-4 py-3">
-              {pills.map((pill) => (
-                <button
-                  key={pill.id}
-                  type="button"
-                  onClick={() => setCategory(pill.id)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                    category === pill.id
-                      ? "brand-gradient text-white shadow-[0_8px_20px_-10px_rgba(16,185,129,0.9)]"
-                      : "border border-line bg-surface text-muted hover:text-fg"
-                  }`}
-                >
-                  {pill.label}
-                </button>
-              ))}
+            <div className={`flex flex-wrap gap-2 border-b px-4 py-3 ${isDark ? "border-slate-700" : "border-slate-200"}`}>
+              {pills.map((pill) => {
+                const selected = category === pill.id;
+                return (
+                  <button
+                    key={pill.id}
+                    type="button"
+                    onClick={() => setCategory(pill.id)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                      selected
+                        ? "brand-gradient text-white shadow-[0_8px_20px_-10px_rgba(16,185,129,0.9)]"
+                        : isDark
+                          ? "border border-slate-600 bg-slate-800 text-slate-200 hover:text-white"
+                          : "border border-slate-200 bg-slate-50 text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    {pill.label}
+                  </button>
+                );
+              })}
             </div>
 
-            <ul className="max-h-[min(52vh,420px)] overflow-y-auto p-2" role="listbox">
+            <ul className={`max-h-[min(52vh,420px)] overflow-y-auto p-2 ${isDark ? "bg-slate-900" : "bg-white"}`} role="listbox">
               {results.length === 0 ? (
-                <li className="px-4 py-10 text-center text-sm text-muted">{t("spotlightEmpty")}</li>
+                <li className={`px-4 py-10 text-center text-sm ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                  {t("spotlightEmpty")}
+                </li>
               ) : (
-                results.map((hit, index) => {
+                results.map((hit, hitIndex) => {
                   const Icon = iconFor(hit.category);
-                  const selected = index === active;
+                  const selected = hitIndex === active;
                   return (
                     <li key={hit.id}>
                       <button
                         type="button"
                         role="option"
                         aria-selected={selected}
-                        onMouseEnter={() => setActive(index)}
+                        onMouseEnter={() => setActive(hitIndex)}
                         onClick={() => go(hit)}
                         className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-start transition ${
-                          selected ? "bg-emerald/12 text-fg" : "text-fg hover:bg-emerald/10"
+                          selected
+                            ? isDark
+                              ? "bg-emerald-500/15 text-white"
+                              : "bg-emerald-50 text-slate-900"
+                            : isDark
+                              ? "text-white hover:bg-slate-800"
+                              : "text-slate-900 hover:bg-slate-50"
                         }`}
                       >
-                        <span className={`inline-flex size-10 shrink-0 items-center justify-center rounded-xl ${selected ? "brand-gradient text-white" : "bg-emerald/10 text-teal"}`}>
+                        <span
+                          className={`inline-flex size-10 shrink-0 items-center justify-center rounded-xl ${
+                            selected
+                              ? "brand-gradient text-white"
+                              : isDark
+                                ? "bg-slate-800 text-emerald-400"
+                                : "bg-emerald-50 text-teal"
+                          }`}
+                        >
                           <Icon className="size-4" />
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-bold">{highlight(hit.title, query)}</span>
-                          <span className="mt-0.5 block truncate text-xs text-muted">{highlight(hit.meta, query)}</span>
+                          <span className={`block truncate text-sm font-bold ${isDark ? "text-white" : "text-slate-900"}`}>
+                            {highlight(hit.title, query)}
+                          </span>
+                          <span className={`mt-0.5 block truncate text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                            {highlight(hit.meta, query)}
+                          </span>
                         </span>
-                        {selected ? <CornerDownLeft className="size-4 shrink-0 text-teal" /> : null}
+                        {selected ? <CornerDownLeft className="size-4 shrink-0 text-emerald-500" /> : null}
                       </button>
                     </li>
                   );
@@ -233,9 +283,15 @@ export function SpotlightSearch() {
               )}
             </ul>
 
-            <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-2.5 text-[11px] text-muted">
+            <div
+              className={`flex items-center justify-between gap-3 border-t px-4 py-2.5 text-[11px] ${
+                isDark ? "border-slate-700 text-slate-400" : "border-slate-200 text-slate-500"
+              }`}
+            >
               <span>{locale === "ar" ? "↑↓ للتنقل · Enter للفتح" : "↑↓ navigate · Enter open"}</span>
-              <span className="font-display tracking-wide">{index.length} {t("spotlightIndexed")}</span>
+              <span className="font-display tracking-wide">
+                {index.length} {t("spotlightIndexed")}
+              </span>
             </div>
           </motion.div>
         </motion.div>
