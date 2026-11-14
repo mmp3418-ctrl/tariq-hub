@@ -1,6 +1,6 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Download, X } from "lucide-react";
-import { useEffect } from "react";
+import { Download, Maximize2, Minimize2, Minus, Plus, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { gradeLabel, subjectLabel } from "../../i18n/content.ts";
 import { usePreferences } from "../../lib/preferences.tsx";
 import type { CatalogNote } from "../../services/types.ts";
@@ -8,11 +8,20 @@ import type { CatalogNote } from "../../services/types.ts";
 export function PreviewDrawer({ note, onClose }: { note: CatalogNote | null; onClose: () => void }) {
   const reduce = useReducedMotion();
   const { t, locale } = usePreferences();
+  const [zoom, setZoom] = useState(100);
+  const [fullscreen, setFullscreen] = useState(false);
 
   useEffect(() => {
-    if (!note) return;
+    if (!note) {
+      setZoom(100);
+      setFullscreen(false);
+      return;
+    }
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") {
+        if (fullscreen) setFullscreen(false);
+        else onClose();
+      }
     };
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -21,12 +30,15 @@ export function PreviewDrawer({ note, onClose }: { note: CatalogNote | null; onC
       document.body.style.overflow = previous;
       document.removeEventListener("keydown", onKey);
     };
-  }, [note, onClose]);
+  }, [fullscreen, note, onClose]);
 
   return (
     <AnimatePresence>
       {note ? (
-        <motion.div className="fixed inset-0 z-[90] flex items-end justify-center sm:items-center" role="presentation">
+        <motion.div
+          className={`fixed inset-0 z-[90] flex justify-center ${fullscreen ? "items-stretch p-0" : "items-end p-0 sm:items-center sm:p-4"}`}
+          role="presentation"
+        >
           <motion.button
             type="button"
             aria-label={t("closePreview")}
@@ -40,41 +52,78 @@ export function PreviewDrawer({ note, onClose }: { note: CatalogNote | null; onC
             role="dialog"
             aria-modal="true"
             aria-labelledby="preview-title"
-            className="glass-strong relative flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-t-2xl sm:rounded-2xl"
+            className={`glass-strong relative flex w-full flex-col overflow-hidden ${
+              fullscreen
+                ? "h-svh max-h-svh max-w-none rounded-none"
+                : "max-h-[92vh] max-w-4xl rounded-t-2xl sm:rounded-2xl"
+            }`}
             initial={reduce ? false : { opacity: 0, y: 28 }}
             animate={{ opacity: 1, y: 0 }}
             exit={reduce ? undefined : { opacity: 0, y: 20 }}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
           >
-            <header className="flex items-start justify-between gap-4 border-b border-white/10 bg-[#0F172A] px-5 py-4 text-white">
-              <div>
+            <header className="flex items-start justify-between gap-3 border-b border-white/10 bg-[#0F172A] px-4 py-3 text-white sm:px-5 sm:py-4">
+              <div className="min-w-0">
                 <p className="font-display text-[11px] tracking-[0.18em] text-emerald">
-                  {note.kind === "ملخص" ? t("noteKindSummary") : t("noteKindWorksheet")} · {note.subjectCode}
+                  {t("quickPreview")} · {note.subjectCode}
                 </p>
-                <h2 id="preview-title" className="mt-1 text-xl font-bold text-white">
+                <h2 id="preview-title" className="mt-1 truncate text-lg font-bold text-white sm:text-xl">
                   {locale === "en"
                     ? `${note.kind === "ملخص" ? t("noteKindSummary") : t("noteKindWorksheet")} ${subjectLabel(locale, note.subjectCode, note.subjectTitle)}`
                     : note.title}
                 </h2>
-                <p className="mt-1 text-sm text-soft">
+                <p className="mt-1 truncate text-sm text-soft">
                   {gradeLabel(locale, note.gradeId, note.gradeTitle)} · {subjectLabel(locale, note.subjectCode, note.subjectTitle)}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setZoom((value) => Math.max(75, value - 25))}
+                  className="inline-flex size-10 items-center justify-center rounded-lg text-white hover:bg-white/10"
+                  aria-label={t("zoomOut")}
+                >
+                  <Minus className="size-4" />
+                </button>
+                <span className="min-w-12 text-center font-display text-xs text-white/80">{zoom}%</span>
+                <button
+                  type="button"
+                  onClick={() => setZoom((value) => Math.min(175, value + 25))}
+                  className="inline-flex size-10 items-center justify-center rounded-lg text-white hover:bg-white/10"
+                  aria-label={t("zoomIn")}
+                >
+                  <Plus className="size-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFullscreen((value) => !value)}
+                  className="inline-flex size-10 items-center justify-center rounded-lg text-white hover:bg-white/10"
+                  aria-label={fullscreen ? t("exitFullscreen") : t("enterFullscreen")}
+                >
+                  {fullscreen ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+                </button>
                 <a
                   href={note.fileUrl}
                   download={note.fileName}
-                  className="brand-gradient inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-white"
+                  className="brand-gradient inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-white"
                 >
                   <Download className="size-4" />
                   <span className="hidden sm:inline">{t("downloadDirect")}</span>
                 </a>
-                <button type="button" onClick={onClose} className="inline-flex size-10 items-center justify-center rounded-md text-white" aria-label={t("closePreview")}>
+                <button type="button" onClick={onClose} className="inline-flex size-10 items-center justify-center rounded-lg text-white hover:bg-white/10" aria-label={t("closePreview")}>
                   <X className="size-5" />
                 </button>
               </div>
             </header>
-            <iframe title={note.title} src={`${note.fileUrl}#view=FitH`} className="h-[72vh] min-h-[320px] w-full bg-white" />
+            <div className="relative flex-1 overflow-auto bg-slate-100 dark:bg-slate-900">
+              <div className="mx-auto origin-top transition-transform" style={{ width: `${zoom}%`, minHeight: "100%" }}>
+                <iframe
+                  title={note.title}
+                  src={`${note.fileUrl}#view=FitH`}
+                  className={`w-full bg-white ${fullscreen ? "h-[calc(100svh-4.5rem)]" : "h-[72vh] min-h-[320px]"}`}
+                />
+              </div>
+            </div>
           </motion.div>
         </motion.div>
       ) : null}

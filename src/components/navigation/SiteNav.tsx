@@ -1,8 +1,9 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Languages, Menu, Moon, Sun, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Languages, Menu, Moon, Search, Sun, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { usePreferences } from "../../lib/preferences.tsx";
+import { useSearch } from "../../lib/search.tsx";
 import { Mark } from "../brand/Mark.tsx";
 
 const routes = [
@@ -16,10 +17,11 @@ const routes = [
 const navItem =
   "rounded-lg px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-offset-2";
 
-export function SiteNav() {
+export function SiteNav({ sticky = true }: { sticky?: boolean }) {
   const { pathname } = useLocation();
   const reduce = useReducedMotion();
   const { t, theme, toggleTheme, locale, toggleLocale, dir } = usePreferences();
+  const { openSearch } = useSearch();
   const [open, setOpen] = useState(false);
   const CtaArrow = dir === "rtl" ? ArrowLeft : ArrowRight;
 
@@ -42,7 +44,7 @@ export function SiteNav() {
   }, [open]);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-5">
+    <header className={`${sticky ? "fixed inset-x-0 top-0 z-50" : "relative z-50"} px-3 pt-3 sm:px-5`}>
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:start-3 focus:z-[90] focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:text-ink"
@@ -74,6 +76,15 @@ export function SiteNav() {
           </nav>
 
           <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
+            <button
+              type="button"
+              onClick={openSearch}
+              className="inline-flex size-11 items-center justify-center rounded-xl text-white transition hover:bg-white/10"
+              aria-label={t("search")}
+              title={`${t("search")} (Ctrl+K)`}
+            >
+              <Search className="size-4" />
+            </button>
             <button
               type="button"
               onClick={toggleLocale}
@@ -155,7 +166,20 @@ export function SiteNav() {
                 ))}
               </nav>
 
-              <div className="mt-3 grid grid-cols-2 gap-2 border-t border-white/10 pt-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  openSearch();
+                }}
+                className="mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 text-sm font-semibold text-white transition hover:bg-white/10"
+              >
+                <Search className="size-4 text-emerald" />
+                {t("search")}
+                <span className="ms-auto font-display text-[10px] tracking-wide text-white/50">Ctrl+K</span>
+              </button>
+
+              <div className="mt-2 grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={toggleLocale}

@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, BookOpen, ChevronDown, Clapperboard, Layers, Spa
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { HeroBook3D } from "../components/brand/HeroBook3D.tsx";
+import { LearningPath } from "../components/home/LearningPath.tsx";
 import { Folio } from "../components/ui/Folio.tsx";
 import { Shell } from "../components/ui/Shell.tsx";
 import { gradeLabel, stageLabel, subjectLabel } from "../i18n/content.ts";
@@ -111,11 +112,22 @@ export function HomePage() {
                 className="glass theme-ease flex min-h-[5.5rem] flex-col justify-end gap-2 rounded-2xl px-4 py-4 sm:px-5 sm:py-5 lg:flex-row lg:items-end lg:justify-between"
               >
                 <span className="text-xs text-muted sm:text-sm">{stat.label}</span>
-                <span className="font-display text-3xl font-bold text-gradient sm:text-4xl">{stat.value}</span>
+                <motion.span
+                  key={`${stat.label}-${stat.value}`}
+                  initial={reduce ? false : { opacity: 0.4, scale: 0.92 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="font-display text-3xl font-bold text-gradient sm:text-4xl"
+                >
+                  {stat.value}
+                </motion.span>
               </motion.div>
             ))}
           </div>
         </section>
+      </Shell>
+
+      <Shell>
+        <LearningPath />
       </Shell>
 
       <section className="py-12 sm:py-16">

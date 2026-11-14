@@ -2,12 +2,18 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import { PreferencesProvider } from "./lib/preferences.tsx";
+import { SearchProvider } from "./lib/search.tsx";
+import { CatalogProvider } from "./services/CatalogProvider.tsx";
 import "./styles/index.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <PreferencesProvider>
-      <App />
+      <CatalogProvider>
+        <SearchProvider>
+          <App />
+        </SearchProvider>
+      </CatalogProvider>
     </PreferencesProvider>
   </StrictMode>,
 );

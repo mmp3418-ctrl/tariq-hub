@@ -1,0 +1,39 @@
+import { BookOpen, Clapperboard, Home, Layers } from "lucide-react";
+import { NavLink } from "react-router-dom";
+import { usePreferences } from "../../lib/preferences.tsx";
+
+const items = [
+  { to: "/", key: "home", icon: Home, end: true },
+  { to: "/grades", key: "grades", icon: Layers, end: false },
+  { to: "/library", key: "library", icon: BookOpen, end: false },
+  { to: "/playlists", key: "playlists", icon: Clapperboard, end: false },
+] as const;
+
+export function MobileBottomNav() {
+  const { t } = usePreferences();
+
+  return (
+    <nav
+      aria-label={t("mobileNav")}
+      className="fixed inset-x-3 bottom-3 z-40 md:hidden"
+    >
+      <div className="glass mx-auto flex max-w-md items-center justify-between gap-1 rounded-2xl px-2 py-2 shadow-[0_16px_40px_-16px_rgba(15,23,42,0.35)]">
+        {items.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            className={({ isActive }) =>
+              `flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[10px] font-semibold transition ${
+                isActive ? "bg-emerald/15 text-teal" : "text-muted hover:text-fg"
+              }`
+            }
+          >
+            <item.icon className="size-4" />
+            <span className="truncate">{t(item.key)}</span>
+          </NavLink>
+        ))}
+      </div>
+    </nav>
+  );
+}
