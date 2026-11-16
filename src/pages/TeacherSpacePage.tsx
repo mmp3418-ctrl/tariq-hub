@@ -5,31 +5,55 @@ import { Folio } from "../components/ui/Folio.tsx";
 import { Shell } from "../components/ui/Shell.tsx";
 import { usePageTitle } from "../lib/usePageTitle.ts";
 import { usePreferences } from "../lib/preferences.tsx";
+import {
+  fetchTeacherSchedule,
+  getTeacherScheduleOwner,
+  isSupabaseConfigured,
+  supabase,
+  upsertTeacherSchedule,
+  type TeacherPlannerMap,
+} from "../lib/supabase.ts";
 import { scheduleSlots, weekDaysAr, weekDaysEn } from "../services/teacherContent.ts";
 
 const PLANNER_KEY = "tariq-teacher-planner-v1";
 
-type PlannerMap = Record<string, string>;
-
-function loadPlanner(): PlannerMap {
+function loadPlanner(): TeacherPlannerMap {
   try {
     const raw = localStorage.getItem(PLANNER_KEY);
     if (!raw) return {};
-    const parsed = JSON.parse(raw) as PlannerMap;
+    const parsed = JSON.parse(raw) as TeacherPlannerMap;
     return parsed && typeof parsed === "object" ? parsed : {};
   } catch {
     return {};
   }
 }
 
+function persistPlannerLocal(planner: TeacherPlannerMap) {
+  try {
+    localStorage.setItem(PLANNER_KEY, JSON.stringify(planner));
+  } catch {
+    /* ignore */
+  }
+}
+
+function releaseSyncFlag(flag: { current: boolean }) {
+  queueMicrotask(() => {
+    flag.current = false;
+  });
+}
+
 export function TeacherSpacePage() {
   const { t, locale, dir } = usePreferences();
   usePageTitle(t("teacherSpace"));
 
-  const [planner, setPlanner] = useState<PlannerMap>(() => (typeof window === "undefined" ? {} : loadPlanner()));
+  const [planner, setPlanner] = useState<TeacherPlannerMap>(() =>
+    typeof window === "undefined" ? {} : loadPlanner(),
+  );
   const [savedFlash, setSavedFlash] = useState(false);
   const [exporting, setExporting] = useState(false);
   const plannerReady = useRef(false);
+  const syncingRemote = useRef(false);
+  const teacherOwner = useRef(typeof window === "undefined" ? "server" : getTeacherScheduleOwner());
   const days = locale === "en" ? weekDaysEn : weekDaysAr;
 
   async function handleExportPdf() {
@@ -54,18 +78,75 @@ export function TeacherSpacePage() {
   }
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function hydrateRemote() {
+      if (!isSupabaseConfigured) return;
+      const remote = await fetchTeacherSchedule(teacherOwner.current);
+      if (cancelled || remote === null) return;
+      if (Object.keys(remote).length === 0 && Object.keys(loadPlanner()).length > 0) {
+        await upsertTeacherSchedule(teacherOwner.current, loadPlanner());
+        return;
+      }
+      syncingRemote.current = true;
+      setPlanner(remote);
+      persistPlannerLocal(remote);
+      releaseSyncFlag(syncingRemote);
+    }
+
+    void hydrateRemote();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const client = supabase;
+    if (!client) return;
+
+    const channel = client
+      .channel(`tariq-teacher-schedule-${teacherOwner.current}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "teacher_schedules",
+          filter: `teacher_name=eq.${teacherOwner.current}`,
+        },
+        () => {
+          void fetchTeacherSchedule(teacherOwner.current).then((remote) => {
+            if (remote === null) return;
+            syncingRemote.current = true;
+            setPlanner(remote);
+            persistPlannerLocal(remote);
+            releaseSyncFlag(syncingRemote);
+          });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void client.removeChannel(channel);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!plannerReady.current) {
       plannerReady.current = true;
       return;
     }
-    try {
-      localStorage.setItem(PLANNER_KEY, JSON.stringify(planner));
-      setSavedFlash(true);
-      const timer = window.setTimeout(() => setSavedFlash(false), 1200);
-      return () => window.clearTimeout(timer);
-    } catch {
-      /* ignore */
+    if (syncingRemote.current) return;
+
+    persistPlannerLocal(planner);
+    setSavedFlash(true);
+    const timer = window.setTimeout(() => setSavedFlash(false), 1200);
+
+    if (isSupabaseConfigured) {
+      void upsertTeacherSchedule(teacherOwner.current, planner);
     }
+
+    return () => window.clearTimeout(timer);
   }, [planner]);
 
   return (

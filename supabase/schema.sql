@@ -33,13 +33,26 @@ CREATE TABLE IF NOT EXISTS resources (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- Live shape on the Tariq Supabase project (one row per timetable cell)
+CREATE TABLE IF NOT EXISTS teacher_schedules (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  teacher_name TEXT NOT NULL,
+  day_of_week TEXT NOT NULL,
+  period_number INT NOT NULL,
+  class_name TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS grades_stage_sort_idx ON grades (stage, sort_order);
 CREATE INDEX IF NOT EXISTS resources_grade_type_idx ON resources (grade_id, type);
 CREATE INDEX IF NOT EXISTS announcements_active_idx ON announcements (is_active, created_at DESC);
+CREATE INDEX IF NOT EXISTS teacher_schedules_teacher_idx ON teacher_schedules (teacher_name, day_of_week, period_number);
 
 ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE grades ENABLE ROW LEVEL SECURITY;
 ALTER TABLE resources ENABLE ROW LEVEL SECURITY;
+ALTER TABLE teacher_schedules ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Public read announcements" ON announcements;
 CREATE POLICY "Public read announcements"
@@ -59,10 +72,36 @@ CREATE POLICY "Public read resources"
   TO anon, authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Public read teacher schedules" ON teacher_schedules;
+CREATE POLICY "Public read teacher schedules"
+  ON teacher_schedules FOR SELECT
+  TO anon, authenticated
+  USING (true);
+
+DROP POLICY IF EXISTS "Public insert teacher schedules" ON teacher_schedules;
+CREATE POLICY "Public insert teacher schedules"
+  ON teacher_schedules FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public update teacher schedules" ON teacher_schedules;
+CREATE POLICY "Public update teacher schedules"
+  ON teacher_schedules FOR UPDATE
+  TO anon, authenticated
+  USING (true)
+  WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public delete teacher schedules" ON teacher_schedules;
+CREATE POLICY "Public delete teacher schedules"
+  ON teacher_schedules FOR DELETE
+  TO anon, authenticated
+  USING (true);
+
 -- Realtime
 ALTER PUBLICATION supabase_realtime ADD TABLE announcements;
 ALTER PUBLICATION supabase_realtime ADD TABLE grades;
 ALTER PUBLICATION supabase_realtime ADD TABLE resources;
+ALTER PUBLICATION supabase_realtime ADD TABLE teacher_schedules;
 
 -- Optional seed announcement (safe to re-run only if table is empty)
 INSERT INTO announcements (message_ar, message_en, is_active)

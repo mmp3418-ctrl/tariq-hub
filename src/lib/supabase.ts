@@ -31,32 +31,39 @@ export type DbResource = {
   created_at: string;
 };
 
-export type Database = {
-  public: {
-    Tables: {
-      announcements: { Row: DbAnnouncement; Insert: Partial<DbAnnouncement>; Update: Partial<DbAnnouncement> };
-      grades: { Row: DbGrade; Insert: Partial<DbGrade>; Update: Partial<DbGrade> };
-      resources: { Row: DbResource; Insert: Partial<DbResource>; Update: Partial<DbResource> };
-    };
-  };
+export type TeacherPlannerMap = Record<string, string>;
+
+/** Live Supabase shape: one row per timetable cell. */
+export type DbTeacherSchedule = {
+  id: string;
+  teacher_name: string;
+  day_of_week: string;
+  period_number: number;
+  class_name: string;
+  subject: string;
+  created_at: string;
 };
 
 const env = import.meta.env as Record<string, string | undefined>;
 
-const supabaseUrl =
-  env.NEXT_PUBLIC_SUPABASE_URL?.trim() ||
-  env.VITE_SUPABASE_URL?.trim() ||
-  "";
+/** Accepts raw URLs or accidental markdown links like [https://x](https://x). */
+function cleanEnvValue(value: string | undefined) {
+  const raw = value?.trim() ?? "";
+  if (!raw) return "";
+  const markdown = raw.match(/\((https?:\/\/[^)\s]+)\)/);
+  if (markdown?.[1]) return markdown[1].trim();
+  const bare = raw.match(/https?:\/\/[^\s\]]+/);
+  if (bare?.[0] && raw.includes("[")) return bare[0].trim();
+  return raw;
+}
 
-const supabaseAnonKey =
-  env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ||
-  env.VITE_SUPABASE_ANON_KEY?.trim() ||
-  "";
+const supabaseUrl = cleanEnvValue(env.NEXT_PUBLIC_SUPABASE_URL || env.VITE_SUPABASE_URL);
+const supabaseAnonKey = cleanEnvValue(env.NEXT_PUBLIC_SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY);
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
-export const supabase: SupabaseClient<Database> | null = isSupabaseConfigured
-  ? createClient<Database>(supabaseUrl, supabaseAnonKey, {
+export const supabase: SupabaseClient | null = isSupabaseConfigured
+  ? createClient(supabaseUrl, supabaseAnonKey, {
       auth: { persistSession: false, autoRefreshToken: false },
       realtime: { params: { eventsPerSecond: 8 } },
     })
@@ -166,4 +173,97 @@ export async function fetchRemoteResources(): Promise<DbResource[] | null> {
     return null;
   }
   return data ?? [];
+}
+
+function plannerKey(dayIndex: number | string, period: number | string) {
+  return `${dayIndex}-${period}`;
+}
+
+function rowsToPlanner(rows: DbTeacherSchedule[]): TeacherPlannerMap {
+  const next: TeacherPlannerMap = {};
+  for (const row of rows) {
+    const day = String(row.day_of_week);
+    const period = String(row.period_number);
+    const subject = (row.subject ?? "").trim();
+    const className = (row.class_name ?? "").trim();
+    if (!subject && (!className || className === "—")) continue;
+    next[plannerKey(day, period)] =
+      className && className !== "—" && className !== subject ? `${subject} / ${className}` : subject || className;
+  }
+  return next;
+}
+
+function plannerToRows(teacherName: string, planner: TeacherPlannerMap): Omit<DbTeacherSchedule, "id" | "created_at">[] {
+  const rows: Omit<DbTeacherSchedule, "id" | "created_at">[] = [];
+  for (const [key, raw] of Object.entries(planner)) {
+    const value = raw.trim();
+    if (!value) continue;
+    const [dayRaw, periodRaw] = key.split("-");
+    const period_number = Number(periodRaw);
+    if (!dayRaw || !Number.isFinite(period_number)) continue;
+    const [subjectPart, classPart] = value.split("/").map((part) => part.trim());
+    rows.push({
+      teacher_name: teacherName,
+      day_of_week: String(dayRaw),
+      period_number,
+      subject: subjectPart || value,
+      class_name: classPart || "—",
+    });
+  }
+  return rows;
+}
+
+export async function fetchTeacherSchedule(teacherName: string): Promise<TeacherPlannerMap | null> {
+  if (!supabase || !teacherName) return null;
+  const { data, error } = await supabase
+    .from("teacher_schedules")
+    .select("*")
+    .eq("teacher_name", teacherName)
+    .order("day_of_week", { ascending: true })
+    .order("period_number", { ascending: true });
+  if (error) {
+    console.warn("[tariq] teacher_schedules fallback:", error.message);
+    return null;
+  }
+  return rowsToPlanner((data as DbTeacherSchedule[] | null) ?? []);
+}
+
+export async function upsertTeacherSchedule(teacherName: string, planner: TeacherPlannerMap): Promise<boolean> {
+  if (!supabase || !teacherName) return false;
+
+  const { error: deleteError } = await supabase.from("teacher_schedules").delete().eq("teacher_name", teacherName);
+  if (deleteError) {
+    console.warn("[tariq] teacher_schedules clear fallback:", deleteError.message);
+    return false;
+  }
+
+  const rows = plannerToRows(teacherName, planner);
+  if (rows.length === 0) return true;
+
+  const { error } = await supabase.from("teacher_schedules").insert(rows);
+  if (error) {
+    console.warn("[tariq] teacher_schedules save fallback:", error.message);
+    return false;
+  }
+  return true;
+}
+
+export const TEACHER_DEVICE_KEY = "tariq-teacher-device-id";
+
+export function getTeacherDeviceId(): string {
+  if (typeof window === "undefined") return "server";
+  try {
+    const existing = localStorage.getItem(TEACHER_DEVICE_KEY);
+    if (existing) return existing;
+    const created = crypto.randomUUID();
+    localStorage.setItem(TEACHER_DEVICE_KEY, created);
+    return created;
+  } catch {
+    return "local-fallback";
+  }
+}
+
+/** Stable owner key stored in live teacher_schedules.teacher_name */
+export function getTeacherScheduleOwner(): string {
+  return `tariq:${getTeacherDeviceId()}`;
 }
