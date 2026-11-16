@@ -138,6 +138,10 @@ const ar: Dict = {
   teacherSlotPlaceholder: "المادة / الصف",
   teacherClearWeek: "تفريغ الأسبوع",
   teacherSaved: "تم الحفظ",
+  teacherExportPdf: "تحميل الجدول كـ PDF",
+  teacherExportingPdf: "جارٍ التجهيز…",
+  teacherExportEmpty: "—",
+  teacherExportFile: "جدول-حصص-المعلم-منصة-طارق.pdf",
 };
 
 const en: Dict = {
@@ -276,6 +280,10 @@ const en: Dict = {
   teacherSlotPlaceholder: "Subject / grade",
   teacherClearWeek: "Clear week",
   teacherSaved: "Saved",
+  teacherExportPdf: "Download schedule as PDF",
+  teacherExportingPdf: "Preparing…",
+  teacherExportEmpty: "—",
+  teacherExportFile: "tariq-teacher-schedule.pdf",
 };
 
 export const messages: Record<Locale, Dict> = { ar, en };

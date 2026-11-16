@@ -1,4 +1,4 @@
-import { BookOpen, Clapperboard, Trash2 } from "lucide-react";
+import { BookOpen, Clapperboard, FileDown, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Folio } from "../components/ui/Folio.tsx";
@@ -28,8 +28,30 @@ export function TeacherSpacePage() {
 
   const [planner, setPlanner] = useState<PlannerMap>(() => (typeof window === "undefined" ? {} : loadPlanner()));
   const [savedFlash, setSavedFlash] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const plannerReady = useRef(false);
   const days = locale === "en" ? weekDaysEn : weekDaysAr;
+
+  async function handleExportPdf() {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const { exportTeacherSchedulePdf } = await import("../lib/exportTeacherSchedulePdf.ts");
+      await exportTeacherSchedulePdf({
+        planner,
+        days,
+        locale,
+        brandName: t("brandName"),
+        brandMarkEn: t("brandMarkEn"),
+        scheduleTitle: t("teacherScheduleTitle"),
+        periodLabel: t("teacherPeriod"),
+        emptyCell: t("teacherExportEmpty"),
+        fileName: t("teacherExportFile"),
+      });
+    } finally {
+      setExporting(false);
+    }
+  }
 
   useEffect(() => {
     if (!plannerReady.current) {
@@ -79,8 +101,17 @@ export function TeacherSpacePage() {
             <p className="text-sm text-teal">{t("teacherPlannerTitle")}</p>
             <h2 className="mt-1 text-xl font-bold text-slate-900 sm:text-2xl dark:text-white">{t("teacherScheduleTitle")}</h2>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {savedFlash ? <span className="text-xs font-semibold text-teal">{t("teacherSaved")}</span> : null}
+            <button
+              type="button"
+              onClick={() => void handleExportPdf()}
+              disabled={exporting}
+              className="brand-gradient inline-flex min-h-10 items-center gap-1.5 rounded-lg px-3.5 text-sm font-semibold text-white shadow-[0_12px_28px_-14px_rgba(16,185,129,1)] disabled:cursor-wait disabled:opacity-80"
+            >
+              <FileDown className="size-3.5" />
+              {exporting ? t("teacherExportingPdf") : t("teacherExportPdf")}
+            </button>
             <button
               type="button"
               onClick={() => setPlanner({})}
