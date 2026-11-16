@@ -4,16 +4,19 @@ import App from "./App.tsx";
 import { PreferencesProvider } from "./lib/preferences.tsx";
 import { SearchProvider } from "./lib/search.tsx";
 import { CatalogProvider } from "./services/CatalogProvider.tsx";
+import { SiteSettingsProvider } from "./services/siteSettings.tsx";
 import "./styles/index.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <PreferencesProvider>
-      <CatalogProvider>
-        <SearchProvider>
-          <App />
-        </SearchProvider>
-      </CatalogProvider>
+      <SiteSettingsProvider>
+        <CatalogProvider>
+          <SearchProvider>
+            <App />
+          </SearchProvider>
+        </CatalogProvider>
+      </SiteSettingsProvider>
     </PreferencesProvider>
   </StrictMode>,
 );

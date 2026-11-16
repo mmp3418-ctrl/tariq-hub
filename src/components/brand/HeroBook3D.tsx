@@ -8,6 +8,7 @@ import {
 } from "framer-motion";
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { usePreferences } from "../../lib/preferences.tsx";
+import { useSiteSettings } from "../../services/siteSettings.tsx";
 import { Mark } from "./Mark.tsx";
 
 const TILT = 14;
@@ -23,6 +24,7 @@ type HeroBook3DProps = {
 export function HeroBook3D({ className = "" }: HeroBook3DProps) {
   const reduce = useReducedMotion();
   const { t } = usePreferences();
+  const { logoUrl } = useSiteSettings();
   const sceneRef = useRef<HTMLDivElement>(null);
   const [opened, setOpened] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -149,7 +151,7 @@ export function HeroBook3D({ className = "" }: HeroBook3DProps) {
               <div className="relative z-10 flex h-full flex-col justify-between p-5 sm:p-6">
                 <div className="flex items-center gap-2.5">
                   <span className="rounded-lg bg-navy/85 p-1.5 ring-1 ring-white/25">
-                    <Mark />
+                    <Mark logoUrl={logoUrl} className="size-7" />
                   </span>
                   <span className="font-display text-[10px] font-semibold tracking-[0.2em] text-[#F8E7A1]/95">
                     LIBYA · CURRICULUM

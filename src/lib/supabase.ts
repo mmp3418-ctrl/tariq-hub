@@ -31,6 +31,25 @@ export type DbResource = {
   created_at: string;
 };
 
+export type DbSocialLink = {
+  platform?: string;
+  id?: string;
+  url?: string;
+  href?: string;
+  label?: string;
+  handle?: string;
+};
+
+export type DbSiteSettings = {
+  id: number;
+  logo_url: string | null;
+  phone_number: string | null;
+  whatsapp_number: string | null;
+  telegram_link: string | null;
+  social_links: DbSocialLink[] | null;
+  updated_at: string;
+};
+
 export type TeacherPlannerMap = Record<string, string>;
 
 /** Live Supabase shape: one row per timetable cell. */
@@ -173,6 +192,26 @@ export async function fetchRemoteResources(): Promise<DbResource[] | null> {
     return null;
   }
   return data ?? [];
+}
+
+export const defaultSiteSettings: DbSiteSettings = {
+  id: 0,
+  logo_url: "",
+  phone_number: "",
+  whatsapp_number: "",
+  telegram_link: "",
+  social_links: [],
+  updated_at: new Date().toISOString(),
+};
+
+export async function fetchSiteSettings(): Promise<DbSiteSettings | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase.from("site_settings").select("*").order("id", { ascending: true }).limit(1).maybeSingle();
+  if (error) {
+    console.warn("[tariq] site_settings fallback:", error.message);
+    return null;
+  }
+  return (data as DbSiteSettings | null) ?? null;
 }
 
 function plannerKey(dayIndex: number | string, period: number | string) {

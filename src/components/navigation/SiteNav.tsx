@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { usePreferences } from "../../lib/preferences.tsx";
 import { useSearch } from "../../lib/search.tsx";
+import { useSiteSettings } from "../../services/siteSettings.tsx";
 import { Mark } from "../brand/Mark.tsx";
 
 const routes = [
@@ -20,6 +21,7 @@ export function SiteNav({ sticky = true }: { sticky?: boolean }) {
   const reduce = useReducedMotion();
   const { t, theme, toggleTheme, locale, toggleLocale, dir } = usePreferences();
   const { openSearch } = useSearch();
+  const { logoUrl } = useSiteSettings();
   const [open, setOpen] = useState(false);
   const CtaArrow = dir === "rtl" ? ArrowLeft : ArrowRight;
   const isDark = theme === "dark";
@@ -62,8 +64,8 @@ export function SiteNav({ sticky = true }: { sticky?: boolean }) {
       <div className="glass-nav relative z-50 mx-auto max-w-6xl">
         <div className="flex h-12 items-center justify-between gap-2 px-2.5 sm:h-[3.25rem] sm:gap-3 sm:px-3">
           <Link to="/" className="flex min-w-0 items-center gap-2 rounded-md" aria-label={t("brandAria")}>
-            <span className="scale-90 origin-center sm:scale-100">
-              <Mark />
+            <span className="origin-center scale-90 sm:scale-100">
+              <Mark logoUrl={logoUrl} />
             </span>
             <span className="flex min-w-0 flex-col leading-none">
               <span className="font-display text-[9px] font-semibold tracking-[0.18em] text-emerald">{t("brandMarkEn")}</span>

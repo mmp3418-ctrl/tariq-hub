@@ -86,8 +86,8 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       fetchRemoteAnnouncements(),
     ]);
 
-    const hasRemote = Boolean(grades && grades.length > 0);
-    if (hasRemote) {
+    // Prefer live rows (even empty) so the student app mirrors the admin dashboard.
+    if (grades !== null) {
       setDbGrades(grades);
       setDbResources(resources ?? []);
       setSource("supabase");
@@ -97,7 +97,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       setSource("mock");
     }
 
-    if (active && active.length > 0) setAnnouncements(active);
+    if (active !== null) setAnnouncements(active);
     else setAnnouncements(mockAnnouncements.filter((item) => item.is_active));
 
     setReady(true);
@@ -120,7 +120,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "grades" }, () => {
         void fetchRemoteGrades().then((rows) => {
-          if (rows && rows.length > 0) {
+          if (rows !== null) {
             setDbGrades(rows);
             setSource("supabase");
           }
@@ -128,7 +128,10 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "resources" }, () => {
         void fetchRemoteResources().then((rows) => {
-          if (rows) setDbResources(rows);
+          if (rows !== null) {
+            setDbResources(rows);
+            setSource("supabase");
+          }
         });
       })
       .subscribe();
