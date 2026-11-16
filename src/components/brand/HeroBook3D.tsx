@@ -114,7 +114,7 @@ export function HeroBook3D({ className = "" }: HeroBook3DProps) {
             <div className="absolute inset-0 bg-[linear-gradient(180deg,#ffffff_0%,#F1F5F9_100%)]" />
             <div className="absolute start-0 top-0 h-full w-2.5 bg-[linear-gradient(90deg,#CBD5E1,#E2E8F0)]" />
             <div className="relative z-10 flex h-full flex-col gap-3 p-4 sm:p-5" dir="rtl">
-              <p className="font-display text-[10px] font-semibold tracking-[0.2em] text-emerald">طارق Hub</p>
+              <p className="font-display text-[10px] font-semibold tracking-[0.2em] text-emerald">منصة طارق</p>
               <p className="text-sm font-bold leading-6 text-slate-900">مسار الدراسة الليبي</p>
               <ul className="space-y-2 text-[11px] leading-5 text-slate-600">
                 <li className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5">① اختر المرحلة والصف</li>
@@ -157,13 +157,13 @@ export function HeroBook3D({ className = "" }: HeroBook3DProps) {
                 </div>
 
                 <div>
-                  <p className="font-display text-[11px] font-semibold tracking-[0.28em] text-[#F8E7A1]">TARIQ HUB</p>
+                  <p className="font-display text-[11px] font-semibold tracking-[0.22em] text-[#F8E7A1]">TARIQ PLATFORM</p>
                   <p
                     className="mt-2 font-sans text-3xl font-extrabold leading-none text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.25)] sm:text-4xl"
                     dir="rtl"
                     style={{ textShadow: "0 1px 0 rgba(248,231,161,0.35)" }}
                   >
-                    طارق Hub
+                    منصة طارق
                   </p>
                   <p className="mt-3 max-w-[12rem] text-xs leading-5 text-white/90">Notes · Grades · Playlists</p>
                 </div>
@@ -195,8 +195,8 @@ export function HeroBook3D({ className = "" }: HeroBook3DProps) {
           {/* Spine */}
           <div className="hero-book-face hero-book-spine absolute top-0 h-full w-7 rounded-s-md bg-[linear-gradient(180deg,#0F172A_0%,#0B132B_50%,#102A43_100%)] shadow-inner">
             <div className="flex h-full items-center justify-center px-0.5">
-              <span className="font-display text-[8px] font-semibold tracking-[0.32em] text-emerald [writing-mode:vertical-rl]">
-                طارق HUB
+              <span className="font-display text-[8px] font-semibold tracking-[0.28em] text-emerald [writing-mode:vertical-rl]">
+                منصة طارق
               </span>
             </div>
           </div>

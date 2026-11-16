@@ -66,8 +66,8 @@ export const supabase: SupabaseClient<Database> | null = isSupabaseConfigured
 export const mockAnnouncements: DbAnnouncement[] = [
   {
     id: "ann-welcome",
-    message_ar: "منصة طارق Hub جاهزة للدراسة — اختر مرحلتك وابدأ من صفّك مباشرة.",
-    message_en: "Tariq Hub is ready — pick your stage and open your grade workspace.",
+    message_ar: "منصة طارق جاهزة للدراسة — اختر مرحلتك وابدأ من صفّك مباشرة.",
+    message_en: "Tariq Platform is ready — pick your stage and open your grade workspace.",
     is_active: true,
     created_at: new Date().toISOString(),
   },

@@ -1,12 +1,12 @@
-import { BookOpen, Clapperboard, Home, Layers } from "lucide-react";
+import { BookOpen, Clapperboard, GraduationCap, Home } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { usePreferences } from "../../lib/preferences.tsx";
 
 const items = [
   { to: "/", key: "home", icon: Home, end: true },
-  { to: "/grades", key: "grades", icon: Layers, end: false },
   { to: "/library", key: "library", icon: BookOpen, end: false },
   { to: "/playlists", key: "playlists", icon: Clapperboard, end: false },
+  { to: "/teacher-space", key: "teacherSpace", icon: GraduationCap, end: false },
 ] as const;
 
 export function MobileBottomNav() {
@@ -14,7 +14,7 @@ export function MobileBottomNav() {
 
   return (
     <nav aria-label={t("mobileNav")} className="fixed inset-x-3 bottom-3 z-40 md:hidden">
-      <div className="mx-auto flex max-w-md items-center justify-between gap-1 rounded-2xl border border-slate-200/80 bg-white/92 px-2 py-2 shadow-[0_16px_40px_-16px_rgba(15,23,42,0.35)] backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/92">
+      <div className="mx-auto flex max-w-lg items-center justify-between gap-1 rounded-2xl border border-slate-200/80 bg-white/92 px-2 py-2 shadow-[0_16px_40px_-16px_rgba(15,23,42,0.35)] backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/92">
         {items.map((item) => (
           <NavLink
             key={item.to}

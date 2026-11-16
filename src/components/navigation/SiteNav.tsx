@@ -11,6 +11,7 @@ const routes = [
   { to: "/grades", key: "grades", end: false },
   { to: "/library", key: "library", end: false },
   { to: "/playlists", key: "playlists", end: false },
+  { to: "/teacher-space", key: "teacherSpace", end: false },
   { to: "/contact", key: "contact", end: false },
 ] as const;
 
@@ -65,7 +66,7 @@ export function SiteNav({ sticky = true }: { sticky?: boolean }) {
               <Mark />
             </span>
             <span className="flex min-w-0 flex-col leading-none">
-              <span className="font-display text-[9px] font-semibold tracking-[0.22em] text-emerald">TARIQ HUB</span>
+              <span className="font-display text-[9px] font-semibold tracking-[0.18em] text-emerald">{t("brandMarkEn")}</span>
               <span className={`mt-0.5 truncate text-sm font-bold sm:text-[15px] ${isDark ? "text-white" : "text-slate-900"}`}>
                 {t("brandName")}
               </span>

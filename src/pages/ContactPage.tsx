@@ -24,10 +24,10 @@ export function ContactPage() {
   return (
     <div className="pb-20">
       <Shell>
-        <Folio index="05" label={t("folioContact")} />
+        <Folio index="06" label={t("folioContact")} />
       <section className="mt-6 grid gap-4 lg:grid-cols-12">
         <div className="surface-dark overflow-hidden rounded-2xl px-5 py-10 shadow-elevated sm:px-10 sm:py-14 lg:col-span-5 lg:px-12">
-          <p className="font-display text-[11px] tracking-[0.22em] text-emerald">TARIQ HUB</p>
+          <p className="font-display text-[11px] tracking-[0.2em] text-emerald">{t("brandMarkEn")}</p>
           <h1 className="mt-4 text-3xl font-bold leading-tight text-white md:text-4xl lg:text-5xl">{t("contact")}</h1>
           <p className="mt-5 max-w-sm text-sm leading-7 text-soft sm:text-base sm:leading-8">{t("contactLead")}</p>
           <dl className="mt-10 space-y-6 text-sm">

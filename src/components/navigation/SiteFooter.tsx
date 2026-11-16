@@ -6,6 +6,7 @@ const links = [
   { to: "/grades", key: "grades" },
   { to: "/library", key: "library" },
   { to: "/playlists", key: "playlists" },
+  { to: "/teacher-space", key: "teacherSpace" },
   { to: "/contact", key: "contact" },
 ] as const;
 
@@ -16,7 +17,7 @@ export function SiteFooter() {
     <footer className="mt-auto border-t border-line">
       <Shell className="flex flex-col gap-8 py-10 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="font-display text-[11px] font-semibold tracking-[0.24em] text-teal">TARIQ HUB</p>
+          <p className="font-display text-[11px] font-semibold tracking-[0.2em] text-teal">{t("brandMarkEn")}</p>
           <p className="mt-3 max-w-sm text-sm leading-7 text-muted">{t("footerTag")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm">

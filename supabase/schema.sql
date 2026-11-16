@@ -1,4 +1,4 @@
--- Tariq Hub — Supabase schema (run in SQL Editor)
+-- منصة طارق / Tariq Platform — Supabase schema (run in SQL Editor)
 -- Enables public read + realtime for announcements, grades, and resources.
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
@@ -67,7 +67,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE resources;
 -- Optional seed announcement (safe to re-run only if table is empty)
 INSERT INTO announcements (message_ar, message_en, is_active)
 SELECT
-  'مرحباً بك في طارق Hub — ابدأ من مرحلتك، ثم افتح ملخصاتك وشروحاتك.',
-  'Welcome to Tariq Hub — start from your stage, then open notes and playlists.',
+  'مرحباً بك في منصة طارق — ابدأ من مرحلتك، ثم افتح ملخصاتك وشروحاتك.',
+  'Welcome to Tariq Platform — start from your stage, then open notes and playlists.',
   TRUE
 WHERE NOT EXISTS (SELECT 1 FROM announcements LIMIT 1);

@@ -7,6 +7,7 @@ import { HomePage } from "./pages/HomePage.tsx";
 import { LibraryPage } from "./pages/LibraryPage.tsx";
 import { NotFoundPage } from "./pages/NotFoundPage.tsx";
 import { PlaylistsPage } from "./pages/PlaylistsPage.tsx";
+import { TeacherSpacePage } from "./pages/TeacherSpacePage.tsx";
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
           <Route path="grades/:gradeId" element={<GradeWorkspacePage />} />
           <Route path="library" element={<LibraryPage />} />
           <Route path="playlists" element={<PlaylistsPage />} />
+          <Route path="teacher-space" element={<TeacherSpacePage />} />
           <Route path="contact" element={<ContactPage />} />
           <Route path="subjects/:gradeId" element={<Navigate to="/grades" replace />} />
           <Route path="study/:subjectId" element={<Navigate to="/library" replace />} />
