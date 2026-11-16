@@ -1,6 +1,7 @@
 import { BookOpen, Clapperboard, FileDown, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { ActiveSchedulesBoard } from "../components/schedules/ActiveSchedulesBoard.tsx";
 import { Folio } from "../components/ui/Folio.tsx";
 import { Shell } from "../components/ui/Shell.tsx";
 import { usePageTitle } from "../lib/usePageTitle.ts";
@@ -150,7 +151,7 @@ export function TeacherSpacePage() {
   }, [planner]);
 
   return (
-    <Shell className="pb-20">
+    <Shell className="overflow-x-hidden pb-20">
       <Folio index="05" label={t("folioTeacher")} />
 
       <header className="surface-dark overflow-hidden rounded-2xl px-5 py-8 shadow-elevated sm:px-8 sm:py-10">
@@ -176,7 +177,14 @@ export function TeacherSpacePage() {
         </div>
       </header>
 
-      <section className="glass mt-8 rounded-2xl p-4 sm:p-6">
+      <section className="glass mt-8 overflow-hidden rounded-2xl p-4 sm:p-6">
+        <p className="text-sm text-teal">{t("activeSchedulesKicker")}</p>
+        <h2 className="mt-1 text-xl font-bold text-slate-900 sm:text-2xl dark:text-white">{t("activeSchedulesTitle")}</h2>
+        <p className="mt-2 max-w-2xl text-sm leading-7 text-muted">{t("activeSchedulesLead")}</p>
+        <ActiveSchedulesBoard />
+      </section>
+
+      <section className="glass mt-8 overflow-hidden rounded-2xl p-4 sm:p-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-sm text-teal">{t("teacherPlannerTitle")}</p>

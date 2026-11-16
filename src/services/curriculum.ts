@@ -109,6 +109,10 @@ const notes: Note[] = subjects.map((subject, index) => {
     detail: "ورقة واحدة لتجربة المعاينة داخل الصفحة والتنزيل المباشر.",
     fileUrl: SAMPLE_NOTE,
     fileName: "tariq-note-preview.pdf",
+    description: "ورقة واحدة لتجربة المعاينة داخل الصفحة والتنزيل المباشر.",
+    coverImage: "",
+    cardColor: "#0f766e",
+    iconName: "file-text",
   };
 });
 
@@ -118,6 +122,11 @@ const lessons: Lesson[] = subjects.map((subject) => ({
   title: `شرح ${subject.title}`,
   detail: "قائمة تشغيل تجريبية داخل المشغّل، وتُستبدل بشرح المادة لاحقاً.",
   playlistId: SAMPLE_PLAYLIST,
+  videoUrl: `https://www.youtube.com/playlist?list=${SAMPLE_PLAYLIST}`,
+  description: "قائمة تشغيل تجريبية داخل المشغّل، وتُستبدل بشرح المادة لاحقاً.",
+  coverImage: "",
+  cardColor: "#0f766e",
+  iconName: "play-circle",
 }));
 
 function gradeContext(gradeId: string) {

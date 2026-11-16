@@ -80,6 +80,21 @@ function playlistIdFromUrl(url: string): string {
   }
 }
 
+function resourceVisual(resource: DbResource, locale: "ar" | "en", fallbackIcon: string) {
+  const description =
+    (locale === "en"
+      ? resource.description_en || resource.description_ar
+      : resource.description_ar || resource.description_en) ||
+    resource.description ||
+    "";
+  return {
+    description: description.trim(),
+    coverImage: (resource.cover_image_url || resource.cover_image || "").trim(),
+    cardColor: (resource.card_color || resource.badge_color || "#0f766e").trim() || "#0f766e",
+    iconName: (resource.icon_name || resource.icon_type || fallbackIcon).trim() || fallbackIcon,
+  };
+}
+
 export function mapDbResources(
   resources: DbResource[],
   grades: DbGrade[],
@@ -115,6 +130,7 @@ export function mapDbResources(
         gradeTitle,
         stageId,
         stageTitle,
+        ...resourceVisual(resource, locale, "file-text"),
       });
     } else {
       lessons.push({
@@ -123,12 +139,14 @@ export function mapDbResources(
         title,
         detail: resource.term ?? "",
         playlistId: playlistIdFromUrl(resource.url),
+        videoUrl: resource.url,
         subjectTitle,
         subjectCode: code,
         gradeId,
         gradeTitle,
         stageId,
         stageTitle,
+        ...resourceVisual(resource, locale, "play-circle"),
       });
     }
   }

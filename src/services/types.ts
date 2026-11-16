@@ -26,6 +26,13 @@ export type Subject = {
 
 export type NoteKind = "ملخص" | "ورقة عمل";
 
+export type ResourceCardVisual = {
+  description: string;
+  coverImage: string;
+  cardColor: string;
+  iconName: string;
+};
+
 export type Note = {
   id: string;
   subjectId: string;
@@ -34,7 +41,7 @@ export type Note = {
   kind: NoteKind;
   fileUrl: string;
   fileName: string;
-};
+} & ResourceCardVisual;
 
 export type Lesson = {
   id: string;
@@ -42,7 +49,8 @@ export type Lesson = {
   title: string;
   detail: string;
   playlistId: string;
-};
+  videoUrl: string;
+} & ResourceCardVisual;
 
 export type CatalogNote = Note & {
   subjectTitle: string;

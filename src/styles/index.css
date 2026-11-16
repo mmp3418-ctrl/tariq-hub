@@ -71,6 +71,19 @@ body {
 #root {
   overflow-x: hidden;
   min-height: 100svh;
+  max-width: 100vw;
+}
+
+img,
+video,
+iframe,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+.touch-pan-y {
+  touch-action: pan-y;
 }
 
 h1,

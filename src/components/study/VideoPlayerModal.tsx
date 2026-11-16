@@ -34,7 +34,7 @@ export function VideoPlayerModal({
   return (
     <AnimatePresence>
       {lesson ? (
-        <motion.div className="fixed inset-0 z-[90] flex items-end justify-center sm:items-center" role="presentation">
+        <motion.div className="fixed inset-0 z-[90] flex items-end justify-center overflow-x-hidden sm:items-center" role="presentation">
           <motion.button
             type="button"
             aria-label={closeLabel}
@@ -48,16 +48,16 @@ export function VideoPlayerModal({
             role="dialog"
             aria-modal="true"
             aria-labelledby="player-title"
-            className="glass-strong relative w-full max-w-4xl overflow-hidden rounded-t-2xl sm:rounded-2xl"
+            className="glass-strong relative w-full max-w-[min(56rem,100vw)] overflow-hidden rounded-t-2xl sm:rounded-2xl"
             initial={reduce ? false : { opacity: 0, y: 28, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={reduce ? undefined : { opacity: 0, y: 18, scale: 0.98 }}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
           >
-            <header className="flex items-start justify-between gap-4 border-b border-white/10 bg-[#0F172A] px-5 py-4 text-white">
-              <div>
-                <p className="font-display text-[11px] tracking-[0.18em] text-emerald">{meta}</p>
-                <h2 id="player-title" className="mt-1 text-xl font-bold text-white">
+            <header className="flex items-start justify-between gap-3 border-b border-white/10 bg-[#0F172A] px-4 py-3 text-white sm:gap-4 sm:px-5 sm:py-4">
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-display text-[11px] tracking-[0.18em] text-emerald">{meta}</p>
+                <h2 id="player-title" className="mt-1 line-clamp-2 text-lg font-bold text-white sm:text-xl">
                   {lesson.title}
                 </h2>
               </div>

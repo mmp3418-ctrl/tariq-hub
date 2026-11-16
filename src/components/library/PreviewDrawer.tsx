@@ -52,22 +52,22 @@ export function PreviewDrawer({ note, onClose }: { note: CatalogNote | null; onC
             role="dialog"
             aria-modal="true"
             aria-labelledby="preview-title"
-            className={`relative flex w-full flex-col overflow-hidden border border-white/20 bg-white/95 shadow-[0_30px_80px_-20px_rgba(15,23,42,0.55)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 ${
+            className={`relative flex w-full max-w-[100vw] flex-col overflow-hidden border border-white/20 bg-white/95 shadow-[0_30px_80px_-20px_rgba(15,23,42,0.55)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95 ${
               fullscreen
                 ? "h-svh max-h-svh max-w-none rounded-none"
-                : "max-h-[92vh] max-w-4xl rounded-t-2xl sm:rounded-2xl"
+                : "max-h-[92svh] max-w-4xl rounded-t-2xl sm:rounded-2xl"
             }`}
             initial={reduce ? false : { opacity: 0, y: 28 }}
             animate={{ opacity: 1, y: 0 }}
             exit={reduce ? undefined : { opacity: 0, y: 20 }}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
           >
-            <header className="flex items-start justify-between gap-3 border-b border-white/10 bg-[#0F172A] px-4 py-3 text-white sm:px-5 sm:py-4">
-              <div className="min-w-0">
+            <header className="flex items-start justify-between gap-3 border-b border-white/10 bg-[#0F172A] px-3 py-3 text-white sm:px-5 sm:py-4">
+              <div className="min-w-0 flex-1">
                 <p className="font-display text-[11px] tracking-[0.18em] text-emerald">
                   {t("quickPreview")} · {note.subjectCode}
                 </p>
-                <h2 id="preview-title" className="mt-1 truncate text-lg font-bold text-white sm:text-xl">
+                <h2 id="preview-title" className="mt-1 line-clamp-2 text-base font-bold text-white sm:truncate sm:text-xl">
                   {locale === "en"
                     ? `${note.kind === "ملخص" ? t("noteKindSummary") : t("noteKindWorksheet")} ${subjectLabel(locale, note.subjectCode, note.subjectTitle)}`
                     : note.title}
@@ -76,7 +76,7 @@ export function PreviewDrawer({ note, onClose }: { note: CatalogNote | null; onC
                   {gradeLabel(locale, note.gradeId, note.gradeTitle)} · {subjectLabel(locale, note.subjectCode, note.subjectTitle)}
                 </p>
               </div>
-              <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+              <div className="flex max-w-[55%] shrink-0 flex-wrap items-center justify-end gap-1 sm:max-w-none sm:gap-1.5">
                 <button
                   type="button"
                   onClick={() => setZoom((value) => Math.max(75, value - 25))}
@@ -115,12 +115,15 @@ export function PreviewDrawer({ note, onClose }: { note: CatalogNote | null; onC
                 </button>
               </div>
             </header>
-            <div className="relative flex-1 overflow-auto bg-slate-100 dark:bg-slate-900">
-              <div className="mx-auto origin-top transition-transform" style={{ width: `${zoom}%`, minHeight: "100%" }}>
+            <div className="relative min-h-0 flex-1 overflow-auto overscroll-contain bg-slate-100 touch-pan-y dark:bg-slate-900">
+              <div
+                className="mx-auto origin-top transition-transform"
+                style={{ width: `${Math.min(zoom, 100)}%`, minWidth: "100%", minHeight: "100%" }}
+              >
                 <iframe
                   title={note.title}
                   src={`${note.fileUrl}#view=FitH`}
-                  className={`w-full bg-white ${fullscreen ? "h-[calc(100svh-4.5rem)]" : "h-[72vh] min-h-[320px]"}`}
+                  className={`w-full max-w-full bg-white ${fullscreen ? "h-[calc(100svh-4.5rem)]" : "h-[68svh] min-h-[280px] sm:h-[72vh] sm:min-h-[320px]"}`}
                 />
               </div>
             </div>

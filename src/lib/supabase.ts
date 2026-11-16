@@ -21,14 +21,23 @@ export type DbGrade = {
 export type DbResource = {
   id: string;
   grade_id: string;
-  type: "pdf" | "playlist";
+  type: "pdf" | "playlist" | "video";
   title_ar: string;
   title_en: string;
   subject_ar: string;
   subject_en: string;
   term: string | null;
   url: string;
-  created_at: string;
+  created_at?: string;
+  description_ar?: string | null;
+  description_en?: string | null;
+  description?: string | null;
+  badge_color?: string | null;
+  card_color?: string | null;
+  icon_type?: string | null;
+  icon_name?: string | null;
+  cover_image_url?: string | null;
+  cover_image?: string | null;
 };
 
 export type DbSocialLink = {
@@ -38,6 +47,8 @@ export type DbSocialLink = {
   href?: string;
   label?: string;
   handle?: string;
+  icon?: string;
+  custom_icon_url?: string | null;
 };
 
 export type DbSiteSettings = {
@@ -52,15 +63,16 @@ export type DbSiteSettings = {
 
 export type TeacherPlannerMap = Record<string, string>;
 
-/** Live Supabase shape: one row per timetable cell. */
+/** Live Supabase shape: one row per timetable cell (admin + teacher portal). */
 export type DbTeacherSchedule = {
   id: string;
   teacher_name: string;
-  day_of_week: string;
+  day_of_week: string | number;
   period_number: number;
   class_name: string;
   subject: string;
-  created_at: string;
+  created_at?: string;
+  is_active?: boolean | null;
 };
 
 const env = import.meta.env as Record<string, string | undefined>;
@@ -206,12 +218,53 @@ export const defaultSiteSettings: DbSiteSettings = {
 
 export async function fetchSiteSettings(): Promise<DbSiteSettings | null> {
   if (!supabase) return null;
+  const byId = await supabase.from("site_settings").select("*").eq("id", 1).maybeSingle();
+  if (!byId.error && byId.data) return byId.data as DbSiteSettings;
+
   const { data, error } = await supabase.from("site_settings").select("*").order("id", { ascending: true }).limit(1).maybeSingle();
   if (error) {
     console.warn("[tariq] site_settings fallback:", error.message);
     return null;
   }
   return (data as DbSiteSettings | null) ?? null;
+}
+
+export async function fetchActiveTeacherSchedules(): Promise<DbTeacherSchedule[] | null> {
+  if (!supabase) return null;
+
+  const withActive = await supabase
+    .from("teacher_schedules")
+    .select("*")
+    .eq("is_active", true)
+    .order("teacher_name", { ascending: true })
+    .order("day_of_week", { ascending: true })
+    .order("period_number", { ascending: true });
+
+  if (!withActive.error) {
+    return ((withActive.data as DbTeacherSchedule[] | null) ?? []).filter(
+      (row) => !String(row.teacher_name).startsWith("tariq:"),
+    );
+  }
+
+  // Column may not exist yet — fall back without is_active filter.
+  if (/is_active/i.test(withActive.error.message)) {
+    const fallback = await supabase
+      .from("teacher_schedules")
+      .select("*")
+      .order("teacher_name", { ascending: true })
+      .order("day_of_week", { ascending: true })
+      .order("period_number", { ascending: true });
+    if (fallback.error) {
+      console.warn("[tariq] teacher_schedules active fallback:", fallback.error.message);
+      return null;
+    }
+    return ((fallback.data as DbTeacherSchedule[] | null) ?? []).filter(
+      (row) => !String(row.teacher_name).startsWith("tariq:"),
+    );
+  }
+
+  console.warn("[tariq] teacher_schedules active fallback:", withActive.error.message);
+  return null;
 }
 
 function plannerKey(dayIndex: number | string, period: number | string) {
@@ -247,6 +300,7 @@ function plannerToRows(teacherName: string, planner: TeacherPlannerMap): Omit<Db
       period_number,
       subject: subjectPart || value,
       class_name: classPart || "—",
+      is_active: true,
     });
   }
   return rows;

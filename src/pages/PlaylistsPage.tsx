@@ -1,5 +1,5 @@
-import { Play } from "lucide-react";
 import { useMemo, useState } from "react";
+import { ResourceCard } from "../components/catalog/ResourceCard.tsx";
 import { StageGradeFlow, type FlowStep } from "../components/catalog/StageGradeFlow.tsx";
 import { TermFilter } from "../components/catalog/TermFilter.tsx";
 import { VideoPlayerModal } from "../components/study/VideoPlayerModal.tsx";
@@ -11,11 +11,6 @@ import { usePageTitle } from "../lib/usePageTitle.ts";
 import { usePreferences } from "../lib/preferences.tsx";
 import { useCatalogLessons, useCatalogSource } from "../services/hooks/useCurriculum.ts";
 import type { CatalogLesson, StageId } from "../services/types.ts";
-
-function playlistThumb(playlistId: string) {
-  if (playlistId.startsWith("http")) return "https://i.ytimg.com/vi_webp/fNk_zzaMoSs/maxresdefault.webp";
-  return `https://i.ytimg.com/vi_webp/fNk_zzaMoSs/maxresdefault.webp`;
-}
 
 export function PlaylistsPage() {
   const lessons = useCatalogLessons();
@@ -39,7 +34,7 @@ export function PlaylistsPage() {
   );
 
   return (
-    <Shell className="pb-20">
+    <Shell className="overflow-x-hidden pb-20">
       <Folio index="04" label={t("folioPlaylists")} />
       <header className="glass max-w-3xl rounded-2xl p-5 pt-7 sm:p-8 sm:pt-10">
         <p className="text-sm text-teal">{t("playlistsKind")}</p>
@@ -84,42 +79,29 @@ export function PlaylistsPage() {
             gradeLessons.length === 0 ? (
               <p className="text-sm leading-7 text-muted">{t("noGradePlaylists")}</p>
             ) : (
-              <div>
+              <div className="min-w-0">
                 <TermFilter terms={terms} value={term} onChange={setTerm} />
                 {filteredLessons.length === 0 ? (
                   <p className="text-sm leading-7 text-muted">{t("noResults")}</p>
                 ) : (
                   <ul className="grid gap-4 sm:grid-cols-2">
                     {filteredLessons.map((lesson) => (
-                      <li key={lesson.id}>
-                        <button
-                          type="button"
-                          onClick={() => setActive(lesson)}
-                          className="glass group flex h-full w-full flex-col overflow-hidden rounded-2xl text-start transition hover:-translate-y-1 hover:shadow-[0_24px_50px_-28px_rgba(16,185,129,0.7)]"
-                        >
-                          <div className="relative aspect-video overflow-hidden bg-navy">
-                            <img
-                              src={playlistThumb(lesson.playlistId)}
-                              alt=""
-                              className="size-full object-cover opacity-80 transition duration-500 group-hover:scale-105"
-                            />
-                            <span className="brand-gradient absolute inset-0 m-auto flex size-14 items-center justify-center rounded-full text-white shadow-[0_16px_40px_-12px_rgba(16,185,129,1)]">
-                              <Play className="ms-0.5 size-5 fill-current" />
-                            </span>
-                          </div>
-                          <div className="flex flex-1 flex-col p-5">
-                            <p className="text-xs text-teal">
-                              {lesson.subjectCode} · {subjectLabel(locale, lesson.subjectCode, lesson.subjectTitle)}
-                              {lesson.detail ? ` · ${lesson.detail}` : ""}
-                            </p>
-                            <h3 className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
-                              {locale === "en"
-                                ? `Lesson · ${subjectLabel(locale, lesson.subjectCode, lesson.subjectTitle)}`
-                                : lesson.title}
-                            </h3>
-                            <span className="mt-4 text-sm font-semibold text-teal">{t("openPlayer")}</span>
-                          </div>
-                        </button>
+                      <li key={lesson.id} className="min-w-0">
+                        <ResourceCard
+                          variant="video"
+                          title={
+                            locale === "en"
+                              ? `Lesson · ${subjectLabel(locale, lesson.subjectCode, lesson.subjectTitle)}`
+                              : lesson.title
+                          }
+                          meta={`${lesson.subjectCode} · ${subjectLabel(locale, lesson.subjectCode, lesson.subjectTitle)}`}
+                          description={lesson.description}
+                          coverImage={lesson.coverImage}
+                          cardColor={lesson.cardColor}
+                          iconName={lesson.iconName}
+                          term={lesson.detail}
+                          onOpen={() => setActive(lesson)}
+                        />
                       </li>
                     ))}
                   </ul>

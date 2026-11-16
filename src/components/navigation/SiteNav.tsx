@@ -6,6 +6,7 @@ import { usePreferences } from "../../lib/preferences.tsx";
 import { useSearch } from "../../lib/search.tsx";
 import { useSiteSettings } from "../../services/siteSettings.tsx";
 import { Mark } from "../brand/Mark.tsx";
+import { ContactQuickLinks } from "./ContactQuickLinks.tsx";
 
 const routes = [
   { to: "/", key: "home", end: true },
@@ -91,6 +92,7 @@ export function SiteNav({ sticky = true }: { sticky?: boolean }) {
           </nav>
 
           <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
+            <ContactQuickLinks compact className="me-0.5 hidden md:flex" />
             <button type="button" onClick={openSearch} className={iconBtn} aria-label={t("search")} title={`${t("search")} (Ctrl+K)`}>
               <Search className="size-3.5" />
             </button>

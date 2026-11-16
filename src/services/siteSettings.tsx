@@ -22,6 +22,8 @@ export type SocialLink = {
   label: string;
   handle: string;
   href: string;
+  icon: string;
+  customIconUrl: string;
 };
 
 export type SiteSettings = {
@@ -60,8 +62,9 @@ function platformFromUrl(url: string) {
   if (value.includes("x.com") || value.includes("twitter")) return "x";
   if (value.includes("tiktok")) return "tiktok";
   if (value.includes("linkedin")) return "linkedin";
+  if (value.includes("snapchat")) return "snapchat";
   if (value.includes("whatsapp") || value.includes("wa.me")) return "whatsapp";
-  return "link";
+  return "globe";
 }
 
 function normalizeSocial(entry: DbSocialLink | string, index: number): SocialLink | null {
@@ -75,20 +78,25 @@ function normalizeSocial(entry: DbSocialLink | string, index: number): SocialLin
       label: platform,
       handle: href.replace(/^https?:\/\//, ""),
       href,
+      icon: platform,
+      customIconUrl: "",
     };
   }
 
   const href = (entry.url || entry.href || "").trim();
   if (!href) return null;
   const platform = (entry.platform || entry.id || platformFromUrl(href)).toLowerCase();
-  const label = (entry.label || platform).trim() || platform;
+  const icon = (entry.icon || platform).toLowerCase();
+  const label = (entry.label || entry.platform || platform).trim() || platform;
   const handle = (entry.handle || href.replace(/^https?:\/\//, "")).trim();
   return {
-    id: `${platform}-${index}`,
+    id: entry.id || `${platform}-${index}`,
     platform,
     label,
     handle,
     href,
+    icon,
+    customIconUrl: (entry.custom_icon_url || "").trim(),
   };
 }
 
@@ -99,22 +107,11 @@ function mapSettings(row: DbSiteSettings | null, source: "mock" | "supabase"): O
     .map((entry, index) => normalizeSocial(entry as DbSocialLink | string, index))
     .filter((entry): entry is SocialLink => Boolean(entry));
 
-  const telegramLink = (data.telegram_link ?? "").trim();
-  if (telegramLink && !socialLinks.some((link) => link.platform === "telegram")) {
-    socialLinks.unshift({
-      id: "telegram-primary",
-      platform: "telegram",
-      label: "Telegram",
-      handle: telegramLink.replace(/^https?:\/\//, ""),
-      href: telegramLink,
-    });
-  }
-
   return {
     logoUrl: (data.logo_url ?? "").trim(),
     phoneNumber: (data.phone_number ?? "").trim(),
     whatsappNumber: (data.whatsapp_number ?? "").trim(),
-    telegramLink,
+    telegramLink: (data.telegram_link ?? "").trim(),
     socialLinks,
     ready: true,
     source,

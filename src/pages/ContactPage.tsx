@@ -32,7 +32,26 @@ export function ContactPage() {
     linkedin: "LinkedIn",
     whatsapp: "WhatsApp",
     tiktok: "TikTok",
+    snapchat: "Snapchat",
+    globe: locale === "en" ? "Website" : "موقع",
   };
+
+  const channelItems = [
+    ...settings.socialLinks,
+    ...(settings.telegramLink && !settings.socialLinks.some((item) => item.platform === "telegram")
+      ? [
+          {
+            id: "telegram-primary",
+            platform: "telegram",
+            label: "Telegram",
+            handle: settings.telegramLink.replace(/^https?:\/\//, ""),
+            href: settings.telegramLink,
+            icon: "telegram",
+            customIconUrl: "",
+          },
+        ]
+      : []),
+  ];
 
   return (
     <div className="pb-20">
@@ -110,19 +129,24 @@ export function ContactPage() {
             <div className="glass rounded-2xl px-5 py-10 sm:px-10 sm:py-14 lg:col-span-7 lg:px-12">
               <p className="text-sm text-teal">{t("contactChannels")}</p>
               <h2 className="mt-3 text-2xl font-bold sm:text-3xl">{t("contactAccounts")}</h2>
-              {settings.socialLinks.length === 0 ? (
+              {channelItems.length === 0 ? (
                 <p className="mt-8 text-sm leading-7 text-muted">{t("awaitingPublish")}</p>
               ) : (
                 <ul className="mt-8 divide-y divide-line border-y border-line">
-                  {settings.socialLinks.map((social) => (
+                  {channelItems.map((social) => (
                     <li key={social.id} className="flex min-h-14 items-center justify-between gap-4 py-4 sm:py-5">
                       <div className="flex min-w-0 items-center gap-3">
-                        <span className="inline-flex size-10 items-center justify-center rounded-xl bg-emerald-500/10 text-teal">
-                          <SocialIcon platform={social.platform} className="size-4" />
+                        <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-teal">
+                          <SocialIcon
+                            platform={social.platform}
+                            icon={social.icon}
+                            customIconUrl={social.customIconUrl}
+                            className="size-4"
+                          />
                         </span>
                         <div className="min-w-0">
-                          <p className="font-semibold">{socialLabels[social.platform] ?? social.label}</p>
-                          <p className="mt-1 text-sm text-muted">
+                          <p className="truncate font-semibold">{socialLabels[social.platform] ?? social.label}</p>
+                          <p className="mt-1 truncate text-sm text-muted">
                             <bdi dir="ltr">{social.handle}</bdi>
                           </p>
                         </div>

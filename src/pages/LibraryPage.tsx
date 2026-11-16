@@ -1,5 +1,5 @@
-import { Download } from "lucide-react";
 import { useMemo, useState } from "react";
+import { ResourceCard, ResourceDownloadAction } from "../components/catalog/ResourceCard.tsx";
 import { StageGradeFlow, type FlowStep } from "../components/catalog/StageGradeFlow.tsx";
 import { TermFilter } from "../components/catalog/TermFilter.tsx";
 import { PreviewDrawer } from "../components/library/PreviewDrawer.tsx";
@@ -34,7 +34,7 @@ export function LibraryPage() {
   );
 
   return (
-    <Shell className="pb-20">
+    <Shell className="overflow-x-hidden pb-20">
       <Folio index="03" label={t("folioLibrary")} />
       <header className="glass max-w-3xl rounded-2xl p-5 pt-7 sm:p-8 sm:pt-10">
         <p className="text-sm text-teal">{t("libraryKind")}</p>
@@ -79,44 +79,36 @@ export function LibraryPage() {
             gradeNotes.length === 0 ? (
               <p className="text-sm leading-7 text-muted">{t("noGradeNotes")}</p>
             ) : (
-              <div>
+              <div className="min-w-0">
                 <TermFilter terms={terms} value={term} onChange={setTerm} />
                 {filteredNotes.length === 0 ? (
                   <p className="text-sm leading-7 text-muted">{t("noResults")}</p>
                 ) : (
-                  <ul className="glass divide-y divide-line overflow-hidden rounded-2xl">
+                  <ul className="grid gap-4 sm:grid-cols-2">
                     {filteredNotes.map((note) => (
-                      <li key={note.id} className="grid gap-4 px-4 py-5 sm:grid-cols-12 sm:items-center sm:px-5">
-                        <div className="sm:col-span-2">
-                          <p className="font-display text-xs tracking-[0.16em] text-teal">{note.subjectCode}</p>
-                          <p className="mt-2 text-sm text-muted">
-                            {note.kind === "ملخص" ? t("noteKindSummary") : t("noteKindWorksheet")}
-                          </p>
-                          {note.detail ? <p className="mt-1 text-xs text-teal">{note.detail}</p> : null}
-                        </div>
-                        <div className="sm:col-span-6">
-                          <h3 className="text-lg font-bold text-slate-900 sm:text-xl dark:text-white">
-                            {locale === "en"
+                      <li key={note.id} className="min-w-0">
+                        <ResourceCard
+                          variant="pdf"
+                          title={
+                            locale === "en"
                               ? `${note.kind === "ملخص" ? t("noteKindSummary") : t("noteKindWorksheet")} ${subjectLabel(locale, note.subjectCode, note.subjectTitle)}`
-                              : note.title}
-                          </h3>
-                          <p className="mt-1 text-sm text-muted">
-                            {subjectLabel(locale, note.subjectCode, note.subjectTitle)}
-                          </p>
-                        </div>
-                        <div className="flex gap-5 text-sm font-semibold sm:col-span-4 sm:justify-end">
-                          <button type="button" onClick={() => setPreview(note)} className="text-teal">
-                            {t("quickPreview")}
-                          </button>
-                          <a
-                            href={note.fileUrl}
-                            download={note.fileName}
-                            className="inline-flex items-center gap-2 text-slate-900 dark:text-white"
-                          >
-                            <Download className="size-4" />
-                            {t("downloadDirect")}
-                          </a>
-                        </div>
+                              : note.title
+                          }
+                          meta={`${note.subjectCode} · ${subjectLabel(locale, note.subjectCode, note.subjectTitle)}`}
+                          description={note.description}
+                          coverImage={note.coverImage}
+                          cardColor={note.cardColor}
+                          iconName={note.iconName}
+                          term={note.detail}
+                          onOpen={() => setPreview(note)}
+                          actions={
+                            <ResourceDownloadAction
+                              href={note.fileUrl}
+                              fileName={note.fileName}
+                              label={t("downloadDirect")}
+                            />
+                          }
+                        />
                       </li>
                     ))}
                   </ul>
