@@ -7,6 +7,8 @@ import { HomePage } from "./pages/HomePage.tsx";
 import { LibraryPage } from "./pages/LibraryPage.tsx";
 import { NotFoundPage } from "./pages/NotFoundPage.tsx";
 import { PlaylistsPage } from "./pages/PlaylistsPage.tsx";
+import { TeacherLibraryPage } from "./pages/TeacherLibraryPage.tsx";
+import { TeacherPlaylistsPage } from "./pages/TeacherPlaylistsPage.tsx";
 import { TeacherSpacePage } from "./pages/TeacherSpacePage.tsx";
 
 export default function App() {
@@ -20,6 +22,8 @@ export default function App() {
           <Route path="library" element={<LibraryPage />} />
           <Route path="playlists" element={<PlaylistsPage />} />
           <Route path="teacher-space" element={<TeacherSpacePage />} />
+          <Route path="teacher-space/library" element={<TeacherLibraryPage />} />
+          <Route path="teacher-space/playlists" element={<TeacherPlaylistsPage />} />
           <Route path="contact" element={<ContactPage />} />
           <Route path="subjects/:gradeId" element={<Navigate to="/grades" replace />} />
           <Route path="study/:subjectId" element={<Navigate to="/library" replace />} />
