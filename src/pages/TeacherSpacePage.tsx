@@ -2,6 +2,8 @@ import { BookOpen, Clapperboard, FileDown, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ActiveSchedulesBoard } from "../components/schedules/ActiveSchedulesBoard.tsx";
+import { GradeCalculator } from "../components/teacher/GradeCalculator.tsx";
+import { TeacherResourcesBoard } from "../components/teacher/TeacherResourcesBoard.tsx";
 import { Folio } from "../components/ui/Folio.tsx";
 import { Shell } from "../components/ui/Shell.tsx";
 import { usePageTitle } from "../lib/usePageTitle.ts";
@@ -183,6 +185,14 @@ export function TeacherSpacePage() {
         <p className="mt-2 max-w-2xl text-sm leading-7 text-muted">{t("activeSchedulesLead")}</p>
         <ActiveSchedulesBoard />
       </section>
+
+      <div className="mt-8">
+        <GradeCalculator />
+      </div>
+
+      <div className="mt-8">
+        <TeacherResourcesBoard />
+      </div>
 
       <section className="glass mt-8 overflow-hidden rounded-2xl p-4 sm:p-6">
         <div className="flex flex-wrap items-end justify-between gap-3">

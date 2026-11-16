@@ -6,12 +6,17 @@ import { Folio } from "../components/ui/Folio.tsx";
 import { Shell } from "../components/ui/Shell.tsx";
 import { usePageTitle } from "../lib/usePageTitle.ts";
 import { usePreferences } from "../lib/preferences.tsx";
+import { useSiteSettings } from "../services/siteSettings.tsx";
 
 export function HomePage() {
   const reduce = useReducedMotion();
-  const { t, dir } = usePreferences();
+  const { t, dir, locale } = usePreferences();
+  const { heroSubtitleAr, heroSubtitleEn } = useSiteSettings();
   const Arrow = dir === "rtl" ? ArrowLeft : ArrowRight;
   usePageTitle(t("brandName"));
+
+  const heroLead =
+    (locale === "en" ? heroSubtitleEn : heroSubtitleAr).trim() || t("heroLead");
 
   const gateways = [
     { to: "/grades", key: "ctaGrades", icon: Layers, text: t("grades") },
@@ -31,18 +36,15 @@ export function HomePage() {
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(16,185,129,0.26),transparent_42%),radial-gradient(circle_at_92%_8%,rgba(255,255,255,0.08),transparent_34%)]" />
           <div className="relative grid grid-cols-1 items-center gap-8 px-5 py-10 sm:px-8 sm:py-12 lg:grid-cols-12 lg:gap-6 lg:px-10 lg:py-14">
             <div className="order-2 flex min-w-0 flex-col justify-center gap-8 lg:order-1 lg:col-span-7">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <p className="font-display text-[11px] font-semibold tracking-[0.22em] text-emerald">{t("brandMarkEn")}</p>
-                <span className="rounded-full border border-emerald/40 bg-emerald/10 px-3 py-1 text-xs text-emerald">
-                  {t("heroEyebrow")}
-                </span>
-              </div>
+              <p className="font-display text-[11px] font-semibold tracking-[0.22em] text-emerald">
+                {locale === "en" ? t("brandMarkEn") : t("brandName")}
+              </p>
               <div className="max-w-2xl">
                 <h1 className="text-3xl font-extrabold leading-[1.12] text-white md:text-5xl lg:text-6xl">
                   <span className="text-gradient">{t("heroTitle")}</span>
                 </h1>
                 <p className="mt-4 max-w-xl text-sm leading-7 text-soft sm:mt-5 sm:text-base sm:leading-8 md:text-lg">
-                  {t("heroLead")}
+                  {heroLead}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2.5">

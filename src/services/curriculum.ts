@@ -113,6 +113,10 @@ const notes: Note[] = subjects.map((subject, index) => {
     coverImage: "",
     cardColor: "#0f766e",
     iconName: "file-text",
+    category: "classbook",
+    unitId: "",
+    lessonId: "",
+    isComingSoon: false,
   };
 });
 
@@ -127,6 +131,10 @@ const lessons: Lesson[] = subjects.map((subject) => ({
   coverImage: "",
   cardColor: "#0f766e",
   iconName: "play-circle",
+  category: "grammar",
+  unitId: "",
+  lessonId: "",
+  isComingSoon: false,
 }));
 
 function gradeContext(gradeId: string) {

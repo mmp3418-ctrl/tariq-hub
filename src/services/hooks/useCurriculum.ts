@@ -58,6 +58,22 @@ export function useCatalogSource() {
   return { source, ready };
 }
 
+export function useUnitsByGrade(gradeId: string) {
+  return useCatalogStore().unitsByGrade(gradeId);
+}
+
+export function useLessonsByUnit(unitId: string) {
+  return useCatalogStore().lessonsByUnit(unitId);
+}
+
+export function useNotesByLesson(lessonId: string) {
+  return useCatalogStore().notesByLesson(lessonId);
+}
+
+export function usePlaylistsByLesson(lessonId: string) {
+  return useCatalogStore().playlistsByLesson(lessonId);
+}
+
 export function useContact(): ContactProfile {
   const [value, setValue] = useState<ContactProfile>(() => listContact());
   useEffect(() => {

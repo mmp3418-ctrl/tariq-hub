@@ -2,6 +2,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { gradeLabel, stageLabel } from "../i18n/content.ts";
+import { ComingSoonBadge } from "../components/ui/ComingSoonBadge.tsx";
 import { Folio } from "../components/ui/Folio.tsx";
 import { Shell } from "../components/ui/Shell.tsx";
 import { usePageTitle } from "../lib/usePageTitle.ts";
@@ -127,7 +128,10 @@ function StageAccordion({
                     className="group flex min-h-14 items-center justify-between gap-4 rounded-xl px-3 py-4 text-fg transition hover:bg-emerald/10 active:bg-emerald/15 sm:px-4"
                   >
                     <span className="min-w-0">
-                      <span className="font-display text-[11px] tracking-[0.16em] text-teal">{grade.index}</span>
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="font-display text-[11px] tracking-[0.16em] text-teal">{grade.index}</span>
+                        {grade.isComingSoon ? <ComingSoonBadge /> : null}
+                      </span>
                       <span className="mt-1 block text-base font-bold sm:text-lg">
                         {gradeLabel(locale, grade.id, grade.title)}
                       </span>

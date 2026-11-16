@@ -14,6 +14,24 @@ export type Grade = {
   index: string;
   title: string;
   subtitle: string;
+  isComingSoon?: boolean;
+  dbId?: string;
+};
+
+export type CurriculumUnit = {
+  id: string;
+  gradeId: string;
+  title: string;
+  sortOrder: number;
+  isComingSoon: boolean;
+};
+
+export type CurriculumLesson = {
+  id: string;
+  unitId: string;
+  title: string;
+  sortOrder: number;
+  isComingSoon: boolean;
 };
 
 export type Subject = {
@@ -31,6 +49,10 @@ export type ResourceCardVisual = {
   coverImage: string;
   cardColor: string;
   iconName: string;
+  category: string;
+  unitId: string;
+  lessonId: string;
+  isComingSoon: boolean;
 };
 
 export type Note = {

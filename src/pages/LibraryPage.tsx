@@ -100,6 +100,7 @@ export function LibraryPage() {
                           cardColor={note.cardColor}
                           iconName={note.iconName}
                           term={note.detail}
+                          isComingSoon={note.isComingSoon}
                           onOpen={() => setPreview(note)}
                           actions={
                             <ResourceDownloadAction

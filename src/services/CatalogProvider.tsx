@@ -10,7 +10,9 @@ import {
 import {
   fetchRemoteAnnouncements,
   fetchRemoteGrades,
+  fetchRemoteLessons,
   fetchRemoteResources,
+  fetchRemoteUnits,
   isSupabaseConfigured,
   mockAnnouncements,
   mockDbGrades,
@@ -18,11 +20,31 @@ import {
   supabase,
   type DbAnnouncement,
   type DbGrade,
+  type DbLesson,
   type DbResource,
+  type DbUnit,
 } from "../lib/supabase.ts";
 import { usePreferences } from "../lib/preferences.tsx";
-import { localCatalogSnapshot, mapDbGrades, mapDbResources, pulseFrom, stagesFromLocale } from "./catalogMap.ts";
-import type { CatalogLesson, CatalogNote, Grade, PlatformPulse, Stage, StageId, Subject } from "./types.ts";
+import {
+  localCatalogSnapshot,
+  mapDbGrades,
+  mapDbLessons,
+  mapDbResources,
+  mapDbUnits,
+  pulseFrom,
+  stagesFromLocale,
+} from "./catalogMap.ts";
+import type {
+  CatalogLesson,
+  CatalogNote,
+  CurriculumLesson,
+  CurriculumUnit,
+  Grade,
+  PlatformPulse,
+  Stage,
+  StageId,
+  Subject,
+} from "./types.ts";
 
 export type Announcement = DbAnnouncement;
 
@@ -31,15 +53,21 @@ type CatalogContextValue = {
   ready: boolean;
   stages: Stage[];
   grades: Grade[];
+  units: CurriculumUnit[];
+  curriculumLessons: CurriculumLesson[];
   notes: CatalogNote[];
   lessons: CatalogLesson[];
   announcements: Announcement[];
   pulse: PlatformPulse;
   gradesByStage: (stageId: string) => Grade[];
   gradeById: (gradeId: string) => Grade | undefined;
+  unitsByGrade: (gradeId: string) => CurriculumUnit[];
+  lessonsByUnit: (unitId: string) => CurriculumLesson[];
   subjectsByGrade: (gradeId: string) => Subject[];
   notesByGrade: (gradeId: string) => CatalogNote[];
   lessonsByGrade: (gradeId: string) => CatalogLesson[];
+  notesByLesson: (lessonId: string) => CatalogNote[];
+  playlistsByLesson: (lessonId: string) => CatalogLesson[];
   refresh: () => Promise<void>;
 };
 
@@ -68,25 +96,30 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   const [source, setSource] = useState<"mock" | "supabase">("mock");
   const [dbGrades, setDbGrades] = useState<DbGrade[] | null>(null);
   const [dbResources, setDbResources] = useState<DbResource[] | null>(null);
+  const [dbUnits, setDbUnits] = useState<DbUnit[]>([]);
+  const [dbLessons, setDbLessons] = useState<DbLesson[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>(mockAnnouncements.filter((item) => item.is_active));
 
   const hydrate = useCallback(async () => {
     if (!isSupabaseConfigured) {
       setDbGrades(null);
       setDbResources(null);
+      setDbUnits([]);
+      setDbLessons([]);
       setAnnouncements(mockAnnouncements.filter((item) => item.is_active));
       setSource("mock");
       setReady(true);
       return;
     }
 
-    const [grades, resources, active] = await Promise.all([
+    const [grades, resources, active, units, lessons] = await Promise.all([
       fetchRemoteGrades(),
       fetchRemoteResources(),
       fetchRemoteAnnouncements(),
+      fetchRemoteUnits(),
+      fetchRemoteLessons(),
     ]);
 
-    // Prefer live rows (even empty) so the student app mirrors the admin dashboard.
     if (grades !== null) {
       setDbGrades(grades);
       setDbResources(resources ?? []);
@@ -96,6 +129,9 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       setDbResources(mockDbResources);
       setSource("mock");
     }
+
+    setDbUnits(units ?? []);
+    setDbLessons(lessons ?? []);
 
     if (active !== null) setAnnouncements(active);
     else setAnnouncements(mockAnnouncements.filter((item) => item.is_active));
@@ -134,6 +170,16 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
           }
         });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "units" }, () => {
+        void fetchRemoteUnits().then((rows) => {
+          if (rows !== null) setDbUnits(rows);
+        });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "lessons" }, () => {
+        void fetchRemoteLessons().then((rows) => {
+          if (rows !== null) setDbLessons(rows);
+        });
+      })
       .subscribe();
 
     return () => {
@@ -147,6 +193,9 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     if (!dbGrades) return local.grades;
     return mapDbGrades(dbGrades, locale);
   }, [dbGrades, locale, local.grades]);
+
+  const units = useMemo(() => mapDbUnits(dbUnits, locale, grades), [dbUnits, grades, locale]);
+  const curriculumLessons = useMemo(() => mapDbLessons(dbLessons, locale), [dbLessons, locale]);
 
   const mapped = useMemo(() => {
     if (!dbGrades || !dbResources) {
@@ -172,18 +221,36 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       ready,
       stages,
       grades,
+      units,
+      curriculumLessons,
       notes: mapped.notes,
       lessons: mapped.lessons,
       announcements,
       pulse,
       gradesByStage: (stageId: string) => grades.filter((grade) => grade.stageId === (stageId as StageId)),
-      gradeById: (gradeId: string) => grades.find((grade) => grade.id === gradeId),
+      gradeById: (gradeId: string) => grades.find((grade) => grade.id === gradeId || grade.dbId === gradeId),
+      unitsByGrade: (gradeId: string) => units.filter((unit) => unit.gradeId === gradeId),
+      lessonsByUnit: (unitId: string) => curriculumLessons.filter((lesson) => lesson.unitId === unitId),
       subjectsByGrade: (gradeId: string) => subjectsFromNotesAndLessons(gradeId, mapped.notes, mapped.lessons),
       notesByGrade: (gradeId: string) => mapped.notes.filter((note) => note.gradeId === gradeId),
       lessonsByGrade: (gradeId: string) => mapped.lessons.filter((lesson) => lesson.gradeId === gradeId),
+      notesByLesson: (lessonId: string) => mapped.notes.filter((note) => note.lessonId === lessonId),
+      playlistsByLesson: (lessonId: string) => mapped.lessons.filter((lesson) => lesson.lessonId === lessonId),
       refresh: hydrate,
     }),
-    [announcements, grades, hydrate, mapped.lessons, mapped.notes, pulse, ready, source, stages],
+    [
+      announcements,
+      curriculumLessons,
+      grades,
+      hydrate,
+      mapped.lessons,
+      mapped.notes,
+      pulse,
+      ready,
+      source,
+      stages,
+      units,
+    ],
   );
 
   return <CatalogContext.Provider value={value}>{children}</CatalogContext.Provider>;

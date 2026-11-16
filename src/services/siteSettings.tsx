@@ -32,6 +32,9 @@ export type SiteSettings = {
   whatsappNumber: string;
   telegramLink: string;
   socialLinks: SocialLink[];
+  heroSubtitleAr: string;
+  heroSubtitleEn: string;
+  bookYearLabel: string;
   ready: boolean;
   source: "mock" | "supabase";
   refresh: () => Promise<void>;
@@ -113,6 +116,9 @@ function mapSettings(row: DbSiteSettings | null, source: "mock" | "supabase"): O
     whatsappNumber: (data.whatsapp_number ?? "").trim(),
     telegramLink: (data.telegram_link ?? "").trim(),
     socialLinks,
+    heroSubtitleAr: (data.hero_subtitle_ar || defaultSiteSettings.hero_subtitle_ar || "").trim(),
+    heroSubtitleEn: (data.hero_subtitle_en || defaultSiteSettings.hero_subtitle_en || "").trim(),
+    bookYearLabel: (data.book_year_label || defaultSiteSettings.book_year_label || "2026 - 2027").trim(),
     ready: true,
     source,
   };

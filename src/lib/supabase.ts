@@ -16,11 +16,42 @@ export type DbGrade = {
   title_en: string;
   slug: string;
   sort_order: number;
+  is_coming_soon?: boolean | null;
 };
+
+export type DbUnit = {
+  id: string;
+  grade_id: string;
+  title?: string | null;
+  title_ar?: string | null;
+  title_en?: string | null;
+  sort_order?: number | null;
+  is_coming_soon?: boolean | null;
+};
+
+export type DbLesson = {
+  id: string;
+  unit_id: string;
+  title?: string | null;
+  title_ar?: string | null;
+  title_en?: string | null;
+  sort_order?: number | null;
+  is_coming_soon?: boolean | null;
+};
+
+export type ResourceCategory =
+  | "classbook"
+  | "workbook"
+  | "vocabulary"
+  | "grammar"
+  | "questions"
+  | string;
 
 export type DbResource = {
   id: string;
   grade_id: string;
+  unit_id?: string | null;
+  lesson_id?: string | null;
   type: "pdf" | "playlist" | "video";
   title_ar: string;
   title_en: string;
@@ -38,6 +69,33 @@ export type DbResource = {
   icon_name?: string | null;
   cover_image_url?: string | null;
   cover_image?: string | null;
+  resource_category?: ResourceCategory | null;
+  is_coming_soon?: boolean | null;
+};
+
+export type TeacherResourceCategory =
+  | "lesson_prep"
+  | "worksheets"
+  | "question_banks"
+  | "grammar_summaries"
+  | "classroom_guide"
+  | string;
+
+export type DbTeacherResource = {
+  id: string;
+  category: TeacherResourceCategory;
+  title?: string | null;
+  title_ar?: string | null;
+  title_en?: string | null;
+  description?: string | null;
+  description_ar?: string | null;
+  description_en?: string | null;
+  url?: string | null;
+  file_url?: string | null;
+  grade_id?: string | null;
+  is_coming_soon?: boolean | null;
+  sort_order?: number | null;
+  created_at?: string;
 };
 
 export type DbSocialLink = {
@@ -59,6 +117,11 @@ export type DbSiteSettings = {
   telegram_link: string | null;
   social_links: DbSocialLink[] | null;
   updated_at: string;
+  hero_title_ar?: string | null;
+  hero_title_en?: string | null;
+  hero_subtitle_ar?: string | null;
+  hero_subtitle_en?: string | null;
+  book_year_label?: string | null;
 };
 
 export type TeacherPlannerMap = Record<string, string>;
@@ -105,7 +168,7 @@ export const mockAnnouncements: DbAnnouncement[] = [
   {
     id: "ann-welcome",
     message_ar: "منصة طارق جاهزة للدراسة — اختر مرحلتك وابدأ من صفّك مباشرة.",
-    message_en: "Tariq Platform is ready — pick your stage and open your grade workspace.",
+    message_en: "Tariq Hub is ready — pick your stage and open your grade workspace.",
     is_active: true,
     created_at: new Date().toISOString(),
   },
@@ -214,7 +277,42 @@ export const defaultSiteSettings: DbSiteSettings = {
   telegram_link: "",
   social_links: [],
   updated_at: new Date().toISOString(),
+  hero_subtitle_ar: "منصتك التعليمية الشاملة للمنهج الليبي",
+  hero_subtitle_en: "Your complete educational hub for the Libyan curriculum",
+  book_year_label: "2026 - 2027",
 };
+
+export async function fetchRemoteUnits(): Promise<DbUnit[] | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase.from("units").select("*");
+  if (error) {
+    console.warn("[tariq] units fallback:", error.message);
+    return null;
+  }
+  return (data as DbUnit[] | null) ?? [];
+}
+
+export async function fetchRemoteLessons(): Promise<DbLesson[] | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase.from("lessons").select("*");
+  if (error) {
+    console.warn("[tariq] lessons fallback:", error.message);
+    return null;
+  }
+  return (data as DbLesson[] | null) ?? [];
+}
+
+export async function fetchTeacherResources(): Promise<DbTeacherResource[] | null> {
+  if (!supabase) return null;
+  const primary = await supabase.from("teacher_resources").select("*");
+  if (!primary.error) return (primary.data as DbTeacherResource[] | null) ?? [];
+
+  const legacy = await supabase.from("teacher_space_items").select("*");
+  if (!legacy.error) return (legacy.data as DbTeacherResource[] | null) ?? [];
+
+  console.warn("[tariq] teacher_resources fallback:", primary.error.message);
+  return null;
+}
 
 export async function fetchSiteSettings(): Promise<DbSiteSettings | null> {
   if (!supabase) return null;

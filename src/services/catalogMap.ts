@@ -1,4 +1,4 @@
-import type { DbGrade, DbResource } from "../lib/supabase.ts";
+import type { DbGrade, DbLesson, DbResource, DbUnit } from "../lib/supabase.ts";
 import {
   listCatalogLessons,
   listCatalogNotes,
@@ -6,9 +6,21 @@ import {
   listPulse,
   listStages,
 } from "./curriculum.ts";
-import type { CatalogLesson, CatalogNote, Grade, PlatformPulse, Stage, StageId } from "./types.ts";
+import type {
+  CatalogLesson,
+  CatalogNote,
+  CurriculumLesson,
+  CurriculumUnit,
+  Grade,
+  PlatformPulse,
+  Stage,
+  StageId,
+} from "./types.ts";
 
-const stageMeta: Record<StageId, { index: string; kickerAr: string; kickerEn: string; titleAr: string; titleEn: string; summaryAr: string; summaryEn: string }> = {
+const stageMeta: Record<
+  StageId,
+  { index: string; kickerAr: string; kickerEn: string; titleAr: string; titleEn: string; summaryAr: string; summaryEn: string }
+> = {
   primary: {
     index: "01",
     kickerAr: "التأسيس",
@@ -56,11 +68,46 @@ export function mapDbGrades(rows: DbGrade[], locale: "ar" | "en"): Grade[] {
     .sort((a, b) => a.sort_order - b.sort_order)
     .map((row, index) => ({
       id: row.slug || row.id,
+      dbId: row.id,
       stageId: row.stage,
       index: String(index + 1).padStart(2, "0"),
       title: locale === "en" ? row.title_en : row.title_ar,
       subtitle: locale === "en" ? stageMeta[row.stage].titleEn : stageMeta[row.stage].titleAr,
+      isComingSoon: Boolean(row.is_coming_soon),
     }));
+}
+
+export function localizedTitle(
+  locale: "ar" | "en",
+  row: { title?: string | null; title_ar?: string | null; title_en?: string | null },
+) {
+  if (locale === "en") return (row.title_en || row.title || row.title_ar || "").trim();
+  return (row.title_ar || row.title || row.title_en || "").trim();
+}
+
+export function mapDbUnits(rows: DbUnit[], locale: "ar" | "en", grades: Grade[]): CurriculumUnit[] {
+  const gradeDbIds = new Map(grades.map((grade) => [grade.dbId || grade.id, grade.id]));
+  return [...rows]
+    .map((row, index) => ({
+      id: row.id,
+      gradeId: gradeDbIds.get(row.grade_id) || row.grade_id,
+      title: localizedTitle(locale, row) || `Unit ${index + 1}`,
+      sortOrder: row.sort_order ?? index,
+      isComingSoon: Boolean(row.is_coming_soon),
+    }))
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+export function mapDbLessons(rows: DbLesson[], locale: "ar" | "en"): CurriculumLesson[] {
+  return [...rows]
+    .map((row, index) => ({
+      id: row.id,
+      unitId: row.unit_id,
+      title: localizedTitle(locale, row) || `Lesson ${index + 1}`,
+      sortOrder: row.sort_order ?? index,
+      isComingSoon: Boolean(row.is_coming_soon),
+    }))
+    .sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
 function subjectCode(subject: string): string {
@@ -92,6 +139,10 @@ function resourceVisual(resource: DbResource, locale: "ar" | "en", fallbackIcon:
     coverImage: (resource.cover_image_url || resource.cover_image || "").trim(),
     cardColor: (resource.card_color || resource.badge_color || "#0f766e").trim() || "#0f766e",
     iconName: (resource.icon_name || resource.icon_type || fallbackIcon).trim() || fallbackIcon,
+    category: (resource.resource_category || "").trim(),
+    unitId: resource.unit_id || "",
+    lessonId: resource.lesson_id || "",
+    isComingSoon: Boolean(resource.is_coming_soon),
   };
 }
 

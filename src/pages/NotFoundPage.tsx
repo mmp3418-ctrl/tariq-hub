@@ -11,7 +11,7 @@ export function NotFoundPage() {
       title={locale === "en" ? "This page left the path." : "هذه الصفحة خرجت عن المسار."}
       body={
         locale === "en"
-          ? "The link does not match a page in Tariq Platform. Return home or open the stage guide."
+          ? "The link does not match a page in Tariq Hub. Return home or open the stage guide."
           : "الرابط لا يطابق صفحة في منصة طارق. ارجع إلى الرئيسية أو افتح دليل المراحل."
       }
     />

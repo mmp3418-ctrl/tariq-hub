@@ -24,6 +24,7 @@ export default function App() {
           <Route path="teacher-space" element={<TeacherSpacePage />} />
           <Route path="teacher-space/library" element={<TeacherLibraryPage />} />
           <Route path="teacher-space/playlists" element={<TeacherPlaylistsPage />} />
+          <Route path="teacher" element={<Navigate to="/teacher-space" replace />} />
           <Route path="contact" element={<ContactPage />} />
           <Route path="subjects/:gradeId" element={<Navigate to="/grades" replace />} />
           <Route path="study/:subjectId" element={<Navigate to="/library" replace />} />

@@ -102,7 +102,7 @@ function buildSheet(options: SchedulePdfOptions) {
       <tbody>${bodyRows}</tbody>
     </table>
     <div style="margin-top:18px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:11px;color:${SOFT};">
-      <span>${rtl ? "منصة طارق · مساحة المعلم" : "Tariq Platform · Teacher's Space"}</span>
+      <span>${rtl ? "منصة طارق · مساحة المعلم" : "Tariq Hub · Teacher's Space"}</span>
       <span style="color:${EMERALD};font-weight:700;">#10B981</span>
     </div>
   `;

@@ -100,6 +100,7 @@ export function PlaylistsPage() {
                           cardColor={lesson.cardColor}
                           iconName={lesson.iconName}
                           term={lesson.detail}
+                          isComingSoon={lesson.isComingSoon}
                           onOpen={() => setActive(lesson)}
                         />
                       </li>

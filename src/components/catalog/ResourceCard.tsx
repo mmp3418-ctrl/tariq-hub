@@ -1,6 +1,7 @@
 import { Download, Play } from "lucide-react";
 import type { ReactNode } from "react";
 import { resolveCardColor, resolveResourceIcon } from "../../lib/resourceVisuals.ts";
+import { ComingSoonBadge } from "../ui/ComingSoonBadge.tsx";
 
 type ResourceCardProps = {
   title: string;
@@ -13,6 +14,7 @@ type ResourceCardProps = {
   variant: "pdf" | "video";
   actions?: ReactNode;
   onOpen?: () => void;
+  isComingSoon?: boolean;
 };
 
 export function ResourceCard({
@@ -26,13 +28,14 @@ export function ResourceCard({
   variant,
   actions,
   onOpen,
+  isComingSoon = false,
 }: ResourceCardProps) {
   const color = resolveCardColor(cardColor);
   const Icon = resolveResourceIcon(iconName);
 
   return (
     <article
-      className="glass group flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border transition hover:-translate-y-0.5"
+      className={`glass group flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border transition ${isComingSoon ? "opacity-90" : "hover:-translate-y-0.5"}`}
       style={{ borderColor: `${color}55`, boxShadow: `0 18px 40px -28px ${color}` }}
     >
       <div className="relative aspect-[16/9] overflow-hidden bg-slate-900">
@@ -52,6 +55,11 @@ export function ResourceCard({
         >
           {variant === "video" ? <Play className="ms-0.5 size-4 fill-current" /> : <Icon className="size-4" />}
         </span>
+        {isComingSoon ? (
+          <span className="absolute end-3 top-3">
+            <ComingSoonBadge />
+          </span>
+        ) : null}
         {term ? (
           <span className="absolute bottom-3 end-3 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
             {term}
@@ -67,11 +75,16 @@ export function ResourceCard({
         {description ? <p className="line-clamp-3 text-sm leading-6 text-muted">{description}</p> : null}
         <div className="mt-auto flex flex-wrap items-center gap-3 pt-3 text-sm font-semibold">
           {onOpen ? (
-            <button type="button" onClick={onOpen} className="text-teal">
+            <button
+              type="button"
+              onClick={onOpen}
+              disabled={isComingSoon}
+              className="text-teal disabled:cursor-not-allowed disabled:opacity-40"
+            >
               {variant === "video" ? "تشغيل" : "معاينة"}
             </button>
           ) : null}
-          {actions}
+          {isComingSoon ? null : actions}
         </div>
       </div>
     </article>

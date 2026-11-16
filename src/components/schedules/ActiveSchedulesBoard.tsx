@@ -3,7 +3,7 @@ import { fetchActiveTeacherSchedules, supabase, type DbTeacherSchedule } from ".
 import { usePreferences } from "../../lib/preferences.tsx";
 import { weekDaysAr, weekDaysEn } from "../../services/teacherContent.ts";
 
-const PERIODS = [1, 2, 3, 4, 5, 6, 7, 8];
+const PERIODS = [1, 2, 3, 4, 5, 6, 7];
 
 export function ActiveSchedulesBoard() {
   const { t, locale } = usePreferences();

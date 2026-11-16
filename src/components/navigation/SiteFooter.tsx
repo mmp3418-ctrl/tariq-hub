@@ -13,6 +13,8 @@ const links = [
   { to: "/contact", key: "contact" },
 ] as const;
 
+/** Footer always leads with Stages (المراحل الدراسية). */
+
 export function SiteFooter() {
   const { t } = usePreferences();
   const { logoUrl } = useSiteSettings();

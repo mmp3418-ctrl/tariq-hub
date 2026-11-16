@@ -130,7 +130,7 @@ export const digitalTools: DigitalTool[] = [
   },
 ];
 
-export const scheduleSlots = ["1", "2", "3", "4", "5", "6"] as const;
+export const scheduleSlots = ["1", "2", "3", "4", "5", "6", "7"] as const;
 export const weekDaysAr = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس"] as const;
 export const weekDaysEn = ["Sun", "Mon", "Tue", "Wed", "Thu"] as const;
 
@@ -139,7 +139,7 @@ export function templateBlob(template: TeacherTemplate, locale: "ar" | "en") {
   const detail = locale === "en" ? template.detailEn : template.detailAr;
   const body =
     locale === "en"
-      ? `${title}\n\n${detail}\n\n— Tariq Platform · Teacher's Space\nFill in: Objective / Materials / Steps / Assessment`
+      ? `${title}\n\n${detail}\n\n— Tariq Hub · Teacher's Space\nFill in: Objective / Materials / Steps / Assessment`
       : `${title}\n\n${detail}\n\n— منصة طارق · مساحة المعلم\nاملأ: الهدف / الوسائل / الخطوات / التقويم`;
   return new Blob([body], { type: "text/plain;charset=utf-8" });
 }
