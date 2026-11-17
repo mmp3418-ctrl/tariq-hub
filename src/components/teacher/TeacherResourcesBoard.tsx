@@ -1,9 +1,10 @@
 import { ChevronDown, ExternalLink } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ComingSoonBadge } from "../ui/ComingSoonBadge.tsx";
-import { fetchTeacherResources, supabase, type DbTeacherResource } from "../../lib/supabase.ts";
+import { isRowComingSoon, type DbTeacherResource } from "../../lib/supabase.ts";
 import { usePreferences } from "../../lib/preferences.tsx";
 import { useGrades, useUnitsByGrade } from "../../services/hooks/useCurriculum.ts";
+import { useTeacherPortal } from "../../services/teacherPortal.tsx";
 import type { CurriculumUnit, Grade } from "../../services/types.ts";
 
 const CATEGORIES = [
@@ -48,7 +49,7 @@ function ResourceList({
   return (
     <ul className="mt-2 space-y-2">
       {items.map((item) => {
-        const soon = Boolean(item.is_coming_soon);
+        const soon = isRowComingSoon(item);
         const href = itemUrl(item);
         return (
           <li
@@ -237,41 +238,7 @@ function GradeResourcesPanel({
 export function TeacherResourcesBoard() {
   const { t, locale } = usePreferences();
   const grades = useGrades();
-  const [items, setItems] = useState<DbTeacherResource[]>([]);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    void fetchTeacherResources().then((rows) => {
-      if (cancelled) return;
-      setItems(rows ?? []);
-      setReady(true);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    const client = supabase;
-    if (!client) return;
-    const channel = client
-      .channel("tariq-teacher-resources")
-      .on("postgres_changes", { event: "*", schema: "public", table: "teacher_resources" }, () => {
-        void fetchTeacherResources().then((rows) => {
-          if (rows) setItems(rows);
-        });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "teacher_space_items" }, () => {
-        void fetchTeacherResources().then((rows) => {
-          if (rows) setItems(rows);
-        });
-      })
-      .subscribe();
-    return () => {
-      void client.removeChannel(channel);
-    };
-  }, []);
+  const { ready, resources: items } = useTeacherPortal();
 
   const gradesWithContent = useMemo(() => {
     return grades.filter((grade) => {

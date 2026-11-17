@@ -5,6 +5,7 @@ import { PreferencesProvider } from "./lib/preferences.tsx";
 import { SearchProvider } from "./lib/search.tsx";
 import { CatalogProvider } from "./services/CatalogProvider.tsx";
 import { SiteSettingsProvider } from "./services/siteSettings.tsx";
+import { TeacherPortalProvider } from "./services/teacherPortal.tsx";
 import "./styles/index.css";
 
 createRoot(document.getElementById("root")!).render(
@@ -12,9 +13,11 @@ createRoot(document.getElementById("root")!).render(
     <PreferencesProvider>
       <SiteSettingsProvider>
         <CatalogProvider>
-          <SearchProvider>
-            <App />
-          </SearchProvider>
+          <TeacherPortalProvider>
+            <SearchProvider>
+              <App />
+            </SearchProvider>
+          </TeacherPortalProvider>
         </CatalogProvider>
       </SiteSettingsProvider>
     </PreferencesProvider>

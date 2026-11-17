@@ -99,6 +99,38 @@ export type DbTeacherResource = {
   created_at?: string;
 };
 
+export type DbGradeCalculatorTool = {
+  id: string;
+  title_ar: string;
+  title_en?: string | null;
+  description_ar?: string | null;
+  description_en?: string | null;
+  url: string;
+  grade_id: string;
+  unit_id: string;
+  max_score?: number | null;
+  is_coming_soon?: boolean | null;
+  created_at?: string;
+};
+
+export type DbClassSchedule = {
+  id: string;
+  class_name: string;
+  day_of_week: string | number;
+  period_number: number;
+  subject: string;
+  room?: string | null;
+  is_active?: boolean | null;
+};
+
+export function isRowActive(row: { is_active?: boolean | null }) {
+  return row.is_active !== false;
+}
+
+export function isRowComingSoon(row: { is_coming_soon?: boolean | null }) {
+  return Boolean(row.is_coming_soon);
+}
+
 export type DbSocialLink = {
   platform?: string;
   id?: string;
@@ -315,6 +347,52 @@ export async function fetchTeacherResources(): Promise<DbTeacherResource[] | nul
   return null;
 }
 
+export async function fetchGradeCalculatorTools(): Promise<DbGradeCalculatorTool[] | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("grade_calculator_tools")
+    .select("*")
+    .order("created_at", { ascending: true });
+  if (error) {
+    console.warn("[tariq] grade_calculator_tools fallback:", error.message);
+    return null;
+  }
+  return (data as DbGradeCalculatorTool[] | null) ?? [];
+}
+
+export async function fetchActiveClassSchedules(): Promise<DbClassSchedule[] | null> {
+  if (!supabase) return null;
+
+  const withActive = await supabase
+    .from("class_schedules")
+    .select("*")
+    .eq("is_active", true)
+    .order("class_name", { ascending: true })
+    .order("day_of_week", { ascending: true })
+    .order("period_number", { ascending: true });
+
+  if (!withActive.error) {
+    return ((withActive.data as DbClassSchedule[] | null) ?? []).filter(isRowActive);
+  }
+
+  if (/is_active/i.test(withActive.error.message)) {
+    const fallback = await supabase
+      .from("class_schedules")
+      .select("*")
+      .order("class_name", { ascending: true })
+      .order("day_of_week", { ascending: true })
+      .order("period_number", { ascending: true });
+    if (fallback.error) {
+      console.warn("[tariq] class_schedules fallback:", fallback.error.message);
+      return null;
+    }
+    return (fallback.data as DbClassSchedule[] | null) ?? [];
+  }
+
+  console.warn("[tariq] class_schedules fallback:", withActive.error.message);
+  return null;
+}
+
 export async function fetchSiteSettings(): Promise<DbSiteSettings | null> {
   if (!supabase) return null;
   const byId = await supabase.from("site_settings").select("*").eq("id", 1).maybeSingle();
@@ -373,6 +451,7 @@ function plannerKey(dayIndex: number | string, period: number | string) {
 function rowsToPlanner(rows: DbTeacherSchedule[]): TeacherPlannerMap {
   const next: TeacherPlannerMap = {};
   for (const row of rows) {
+    if (!isRowActive(row)) continue;
     const day = String(row.day_of_week);
     const period = String(row.period_number);
     const subject = (row.subject ?? "").trim();
