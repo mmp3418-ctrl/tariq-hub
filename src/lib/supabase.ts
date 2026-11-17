@@ -93,6 +93,7 @@ export type DbTeacherResource = {
   url?: string | null;
   file_url?: string | null;
   grade_id?: string | null;
+  unit_id?: string | null;
   is_coming_soon?: boolean | null;
   sort_order?: number | null;
   created_at?: string;

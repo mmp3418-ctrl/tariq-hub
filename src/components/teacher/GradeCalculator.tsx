@@ -25,8 +25,11 @@ function createRow(): Row {
   };
 }
 
+const fieldClass =
+  "w-full min-w-0 rounded-md border border-transparent bg-white px-2 py-2 text-xs outline-none ring-emerald/30 focus:border-emerald/40 focus:ring-2 dark:bg-slate-950";
+
 export function GradeCalculator() {
-  const { t } = usePreferences();
+  const { t, dir } = usePreferences();
   const [rows, setRows] = useState<Row[]>([createRow(), createRow()]);
 
   const totals = useMemo(
@@ -42,10 +45,14 @@ export function GradeCalculator() {
     [rows],
   );
 
+  function updateRow(id: string, patch: Partial<Row>) {
+    setRows((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+  }
+
   return (
     <section className="glass overflow-hidden rounded-2xl p-4 sm:p-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <p className="text-sm text-teal">{t("teacherCalcTitle")}</p>
           <h2 className="mt-1 text-xl font-bold text-slate-900 sm:text-2xl dark:text-white">{t("teacherCalcTitle")}</h2>
           <p className="mt-2 max-w-2xl text-sm leading-7 text-muted">{t("teacherCalcLead")}</p>
@@ -69,7 +76,63 @@ export function GradeCalculator() {
         </div>
       </div>
 
-      <div className="mt-5 overflow-x-auto">
+      {/* Mobile card layout — avoids horizontal page scroll */}
+      <div className="mt-5 space-y-3 md:hidden">
+        {rows.map((row, index) => (
+          <div key={row.id} className="rounded-xl border border-line p-3">
+            <div className="flex items-center justify-between gap-2">
+              <label className="min-w-0 flex-1 text-xs font-semibold text-muted">
+                {t("teacherCalcStudent")}
+                <input
+                  value={row.name}
+                  onChange={(event) => updateRow(row.id, { name: event.target.value })}
+                  placeholder={`${t("teacherCalcStudent")} ${index + 1}`}
+                  className={`${fieldClass} mt-1`}
+                  dir={dir}
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => setRows((current) => current.filter((item) => item.id !== row.id))}
+                className="inline-flex size-9 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                aria-label={t("teacherCalcReset")}
+              >
+                <Trash2 className="size-3.5" />
+              </button>
+            </div>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {(
+                [
+                  ["continuous", "teacherCalcContinuous"],
+                  ["midterm", "teacherCalcMidterm"],
+                  ["finalScore", "teacherCalcFinal"],
+                ] as const
+              ).map(([field, labelKey]) => (
+                <label key={field} className="min-w-0 text-[11px] font-semibold text-muted">
+                  {t(labelKey)}
+                  <input
+                    inputMode="decimal"
+                    value={row[field]}
+                    onChange={(event) => updateRow(row.id, { [field]: event.target.value })}
+                    className={`${fieldClass} mt-1`}
+                    dir="ltr"
+                  />
+                </label>
+              ))}
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-3 text-sm">
+              <span className="font-semibold text-teal" dir="ltr">
+                {t("teacherCalcTotal")}: {totals[index].total.toFixed(1)}
+              </span>
+              <span className="font-semibold text-slate-800 dark:text-white" dir="ltr">
+                {t("teacherCalcAverage")}: {totals[index].average.toFixed(1)}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-5 -mx-1 hidden overflow-x-auto overscroll-x-contain px-1 md:block">
         <table className="min-w-[720px] w-full border-collapse text-sm">
           <thead>
             <tr>
@@ -88,13 +151,10 @@ export function GradeCalculator() {
                 <td className="border border-line p-1.5">
                   <input
                     value={row.name}
-                    onChange={(event) =>
-                      setRows((current) =>
-                        current.map((item) => (item.id === row.id ? { ...item, name: event.target.value } : item)),
-                      )
-                    }
+                    onChange={(event) => updateRow(row.id, { name: event.target.value })}
                     placeholder={`${t("teacherCalcStudent")} ${index + 1}`}
-                    className="w-full rounded-md border border-transparent bg-white px-2 py-2 text-xs outline-none ring-emerald/30 focus:border-emerald/40 focus:ring-2 dark:bg-slate-950"
+                    className={fieldClass}
+                    dir={dir}
                   />
                 </td>
                 {(["continuous", "midterm", "finalScore"] as const).map((field) => (
@@ -102,14 +162,8 @@ export function GradeCalculator() {
                     <input
                       inputMode="decimal"
                       value={row[field]}
-                      onChange={(event) =>
-                        setRows((current) =>
-                          current.map((item) =>
-                            item.id === row.id ? { ...item, [field]: event.target.value } : item,
-                          ),
-                        )
-                      }
-                      className="w-full rounded-md border border-transparent bg-white px-2 py-2 text-xs outline-none ring-emerald/30 focus:border-emerald/40 focus:ring-2 dark:bg-slate-950"
+                      onChange={(event) => updateRow(row.id, { [field]: event.target.value })}
+                      className={fieldClass}
                       dir="ltr"
                     />
                   </td>
