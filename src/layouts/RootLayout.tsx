@@ -1,7 +1,6 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useRef } from "react";
 import { useLocation, useOutlet } from "react-router-dom";
-import { AnnouncementBar } from "../components/announcements/AnnouncementBar.tsx";
 import { MobileBottomNav } from "../components/navigation/MobileBottomNav.tsx";
 import { SiteFooter } from "../components/navigation/SiteFooter.tsx";
 import { SiteNav } from "../components/navigation/SiteNav.tsx";
@@ -37,7 +36,6 @@ export function RootLayout() {
       <RouteProgress />
       <ScrollProgress />
       <div ref={headerRef} className="fixed inset-x-0 top-0 z-50">
-        <AnnouncementBar />
         <SiteNav sticky={false} />
       </div>
       <SpotlightSearch />

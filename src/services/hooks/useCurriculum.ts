@@ -74,6 +74,14 @@ export function usePlaylistsByLesson(lessonId: string) {
   return useCatalogStore().playlistsByLesson(lessonId);
 }
 
+export function useNotesByUnit(unitId: string) {
+  return useCatalogStore().notesByUnit(unitId);
+}
+
+export function usePlaylistsByUnit(unitId: string) {
+  return useCatalogStore().playlistsByUnit(unitId);
+}
+
 export function useContact(): ContactProfile {
   const [value, setValue] = useState<ContactProfile>(() => listContact());
   useEffect(() => {

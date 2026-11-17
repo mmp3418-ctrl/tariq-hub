@@ -29,9 +29,11 @@ type TeacherPortalValue = {
   calculatorTools: DbGradeCalculatorTool[];
   teacherSchedules: DbTeacherSchedule[];
   classSchedules: DbClassSchedule[];
-  /** True when at least one published teacher/class schedule slot is active. */
+  /** Published schedules with is_active — hidden when none. */
   schedulesVisible: boolean;
-  /** True when every calculator tool is coming soon (and at least one exists). */
+  /** Grade calculator respects is_active — hidden when all tools disabled. */
+  calculatorVisible: boolean;
+  /** Active tools exist but all are marked coming soon. */
   calculatorLocked: boolean;
   refresh: () => Promise<void>;
 };
@@ -42,8 +44,15 @@ export function TeacherPortalProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(!isSupabaseConfigured);
   const [resources, setResources] = useState<DbTeacherResource[]>([]);
   const [calculatorTools, setCalculatorTools] = useState<DbGradeCalculatorTool[]>([]);
+  const [calculatorConfigured, setCalculatorConfigured] = useState(false);
   const [teacherSchedules, setTeacherSchedules] = useState<DbTeacherSchedule[]>([]);
   const [classSchedules, setClassSchedules] = useState<DbClassSchedule[]>([]);
+
+  const applyCalculator = useCallback((result: Awaited<ReturnType<typeof fetchGradeCalculatorTools>>) => {
+    if (!result) return;
+    setCalculatorConfigured(result.configured);
+    setCalculatorTools(result.active);
+  }, []);
 
   const refresh = useCallback(async () => {
     if (!isSupabaseConfigured) {
@@ -57,11 +66,11 @@ export function TeacherPortalProvider({ children }: { children: ReactNode }) {
       fetchActiveClassSchedules(),
     ]);
     if (res) setResources(res);
-    if (tools) setCalculatorTools(tools);
+    applyCalculator(tools);
     if (teachers) setTeacherSchedules(teachers);
     if (classes) setClassSchedules(classes);
     setReady(true);
-  }, []);
+  }, [applyCalculator]);
 
   useEffect(() => {
     void refresh();
@@ -84,9 +93,7 @@ export function TeacherPortalProvider({ children }: { children: ReactNode }) {
         });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "grade_calculator_tools" }, () => {
-        void fetchGradeCalculatorTools().then((rows) => {
-          if (rows) setCalculatorTools(rows);
-        });
+        void fetchGradeCalculatorTools().then(applyCalculator);
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "teacher_schedules" }, () => {
         void fetchActiveTeacherSchedules().then((rows) => {
@@ -103,12 +110,17 @@ export function TeacherPortalProvider({ children }: { children: ReactNode }) {
     return () => {
       void client.removeChannel(channel);
     };
-  }, []);
+  }, [applyCalculator]);
 
   const value = useMemo<TeacherPortalValue>(() => {
     const schedulesVisible = teacherSchedules.length > 0 || classSchedules.length > 0;
+    // Empty tools table → built-in calculator stays available.
+    // Configured but every tool inactive → hide calculator.
+    const calculatorVisible = !calculatorConfigured || calculatorTools.length > 0;
     const calculatorLocked =
-      calculatorTools.length > 0 && calculatorTools.every((tool) => isRowComingSoon(tool));
+      calculatorVisible &&
+      calculatorTools.length > 0 &&
+      calculatorTools.every((tool) => isRowComingSoon(tool));
 
     return {
       ready,
@@ -117,10 +129,19 @@ export function TeacherPortalProvider({ children }: { children: ReactNode }) {
       teacherSchedules,
       classSchedules,
       schedulesVisible,
+      calculatorVisible,
       calculatorLocked,
       refresh,
     };
-  }, [calculatorTools, classSchedules, ready, refresh, resources, teacherSchedules]);
+  }, [
+    calculatorConfigured,
+    calculatorTools,
+    classSchedules,
+    ready,
+    refresh,
+    resources,
+    teacherSchedules,
+  ]);
 
   return <TeacherPortalContext.Provider value={value}>{children}</TeacherPortalContext.Provider>;
 }

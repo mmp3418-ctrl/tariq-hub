@@ -68,6 +68,8 @@ type CatalogContextValue = {
   lessonsByGrade: (gradeId: string) => CatalogLesson[];
   notesByLesson: (lessonId: string) => CatalogNote[];
   playlistsByLesson: (lessonId: string) => CatalogLesson[];
+  notesByUnit: (unitId: string) => CatalogNote[];
+  playlistsByUnit: (unitId: string) => CatalogLesson[];
   refresh: () => Promise<void>;
 };
 
@@ -236,6 +238,10 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       lessonsByGrade: (gradeId: string) => mapped.lessons.filter((lesson) => lesson.gradeId === gradeId),
       notesByLesson: (lessonId: string) => mapped.notes.filter((note) => note.lessonId === lessonId),
       playlistsByLesson: (lessonId: string) => mapped.lessons.filter((lesson) => lesson.lessonId === lessonId),
+      notesByUnit: (unitId: string) =>
+        mapped.notes.filter((note) => note.unitId === unitId && !note.lessonId),
+      playlistsByUnit: (unitId: string) =>
+        mapped.lessons.filter((lesson) => lesson.unitId === unitId && !lesson.lessonId),
       refresh: hydrate,
     }),
     [

@@ -94,6 +94,7 @@ export type DbTeacherResource = {
   file_url?: string | null;
   grade_id?: string | null;
   unit_id?: string | null;
+  is_active?: boolean | null;
   is_coming_soon?: boolean | null;
   sort_order?: number | null;
   created_at?: string;
@@ -106,9 +107,10 @@ export type DbGradeCalculatorTool = {
   description_ar?: string | null;
   description_en?: string | null;
   url: string;
-  grade_id: string;
-  unit_id: string;
+  grade_id?: string | null;
+  unit_id?: string | null;
   max_score?: number | null;
+  is_active?: boolean | null;
   is_coming_soon?: boolean | null;
   created_at?: string;
 };
@@ -338,26 +340,44 @@ export async function fetchRemoteLessons(): Promise<DbLesson[] | null> {
 export async function fetchTeacherResources(): Promise<DbTeacherResource[] | null> {
   if (!supabase) return null;
   const primary = await supabase.from("teacher_resources").select("*");
-  if (!primary.error) return (primary.data as DbTeacherResource[] | null) ?? [];
+  if (!primary.error) {
+    return ((primary.data as DbTeacherResource[] | null) ?? []).filter(isRowActive);
+  }
 
   const legacy = await supabase.from("teacher_space_items").select("*");
-  if (!legacy.error) return (legacy.data as DbTeacherResource[] | null) ?? [];
+  if (!legacy.error) {
+    return ((legacy.data as DbTeacherResource[] | null) ?? []).filter(isRowActive);
+  }
 
   console.warn("[tariq] teacher_resources fallback:", primary.error.message);
   return null;
 }
 
-export async function fetchGradeCalculatorTools(): Promise<DbGradeCalculatorTool[] | null> {
+export type GradeCalculatorToolsResult = {
+  /** Active tools only (is_active !== false). */
+  active: DbGradeCalculatorTool[];
+  /** True when the table has any rows (active or not). */
+  configured: boolean;
+};
+
+export async function fetchGradeCalculatorTools(): Promise<GradeCalculatorToolsResult | null> {
   if (!supabase) return null;
+
   const { data, error } = await supabase
     .from("grade_calculator_tools")
     .select("*")
     .order("created_at", { ascending: true });
+
   if (error) {
     console.warn("[tariq] grade_calculator_tools fallback:", error.message);
     return null;
   }
-  return (data as DbGradeCalculatorTool[] | null) ?? [];
+
+  const rows = (data as DbGradeCalculatorTool[] | null) ?? [];
+  return {
+    configured: rows.length > 0,
+    active: rows.filter(isRowActive),
+  };
 }
 
 export async function fetchActiveClassSchedules(): Promise<DbClassSchedule[] | null> {

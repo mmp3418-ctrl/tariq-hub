@@ -29,7 +29,7 @@ function ScheduleGrid({
   return (
     <div className="overflow-hidden rounded-2xl border border-line">
       <div className="border-b border-line bg-surface px-4 py-3">
-        <p className="truncate text-sm font-bold text-slate-900 dark:text-white">{title}</p>
+        <p className="truncate text-sm font-bold text-fg">{title}</p>
       </div>
       <div className="overflow-x-auto overscroll-x-contain">
         <table className="min-w-[640px] w-full border-collapse text-sm">
@@ -55,7 +55,7 @@ function ScheduleGrid({
                     <td key={`${title}-${dayIndex}-${period}`} className="border border-line px-2 py-2 align-top">
                       {cell ? (
                         <div className="min-w-0">
-                          <p className="truncate font-semibold text-slate-900 dark:text-white">{cell.subject}</p>
+                          <p className="truncate font-semibold text-fg">{cell.subject}</p>
                           {"class_name" in cell && cell.class_name !== title ? (
                             <p className="truncate text-xs text-muted">{cell.class_name}</p>
                           ) : null}

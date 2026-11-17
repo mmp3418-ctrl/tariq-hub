@@ -69,7 +69,7 @@ export function GradeCalculatorToolsBoard() {
                       className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg border border-line px-3 py-2.5"
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{title}</p>
+                        <p className="truncate text-sm font-semibold text-fg">{title}</p>
                         {description ? <p className="mt-1 line-clamp-2 text-xs text-muted">{description}</p> : null}
                         {soon ? <ComingSoonBadge className="mt-2" /> : null}
                       </div>

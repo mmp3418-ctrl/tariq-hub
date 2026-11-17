@@ -57,7 +57,7 @@ function ResourceList({
             className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg border border-line px-3 py-2.5"
           >
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                          <p className="truncate text-sm font-semibold text-fg">
                 {itemTitle(item, locale)}
               </p>
               {itemDescription(item, locale) ? (
@@ -119,7 +119,7 @@ function UnitBlock({
         className="flex w-full min-w-0 items-center justify-between gap-3 bg-surface px-3 py-3 text-start sm:px-4"
       >
         <div className="min-w-0">
-          <p className="truncate text-sm font-bold text-slate-900 dark:text-white">{unit.title}</p>
+          <p className="truncate text-sm font-bold text-fg">{unit.title}</p>
           <p className="mt-0.5 text-xs text-muted">
             {items.length} · {t("teacherResourcesTitle")}
           </p>
@@ -202,7 +202,7 @@ function GradeResourcesPanel({
       >
         <div className="min-w-0">
           <p className="font-display text-[11px] tracking-[0.18em] text-teal">{grade.index}</p>
-          <h3 className="mt-1 truncate text-lg font-bold text-slate-900 dark:text-white">{grade.title}</h3>
+          <h3 className="mt-1 truncate text-lg font-bold text-fg">{grade.title}</h3>
           <p className="mt-1 text-xs text-muted">
             {gradeItems.length} · {t("unitsTitle")}
           </p>
@@ -260,7 +260,7 @@ export function TeacherResourcesBoard() {
   return (
     <section className="glass overflow-hidden rounded-2xl p-4 sm:p-6">
       <p className="text-sm text-teal">{t("teacherResourcesTitle")}</p>
-      <h2 className="mt-1 text-xl font-bold text-slate-900 sm:text-2xl dark:text-white">
+      <h2 className="mt-1 text-xl font-bold text-fg sm:text-2xl">
         {t("teacherResourcesTitle")}
       </h2>
       <p className="mt-2 max-w-2xl text-sm leading-7 text-muted">{t("teacherResourcesByUnitLead")}</p>

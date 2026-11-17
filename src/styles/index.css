@@ -31,19 +31,20 @@
 }
 
 html.dark {
-  --fg: #f1f5f9;
-  --fg-muted: #94a3b8;
+  --fg: #f8fafc;
+  --fg-muted: #cbd5e1;
   --surface: #0b132b;
-  --line: rgb(30 41 59 / 0.8);
-  --glass-bg: rgb(15 23 42 / 0.92);
-  --glass-border: rgb(30 41 59 / 0.8);
+  --line: rgb(51 65 85 / 0.85);
+  --glass-bg: rgb(15 23 42 / 0.96);
+  --glass-border: rgb(51 65 85 / 0.9);
   --glass-shadow: 0 8px 30px rgb(0 0 0 / 0.28);
-  --glass-strong-bg: rgb(15 23 42 / 0.96);
+  --glass-strong-bg: rgb(15 23 42 / 0.98);
   --panel-bg: #0f172a;
-  --panel-border: rgb(30 41 59 / 0.8);
+  --panel-border: rgb(51 65 85 / 0.9);
   --nav-bg: #0f172a;
   --glow: rgb(16 185 129 / 0.35);
   --elevated: 0 8px 30px rgb(0 0 0 / 0.28);
+  --color-teal: #34d399;
   color-scheme: dark;
 }
 
@@ -203,8 +204,34 @@ h3 {
     color: #ffffff;
   }
 
+  /* Soft copy is for navy hero panels only — elsewhere use theme muted. */
   .text-soft {
-    color: rgb(255 255 255 / 0.72);
+    color: var(--fg-muted);
+  }
+
+  .surface-dark .text-soft,
+  .surface-dark .text-muted {
+    color: rgb(248 250 252 / 0.78);
+  }
+
+  .text-teal {
+    color: var(--color-teal);
+  }
+
+  html.dark .text-teal {
+    color: #34d399;
+  }
+
+  input,
+  textarea,
+  select {
+    color: var(--fg);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--fg-muted);
+    opacity: 0.85;
   }
 
   .brand-gradient {

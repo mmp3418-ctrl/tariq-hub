@@ -148,7 +148,7 @@ export function TeacherSchedulePlanner() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm text-teal">{t("teacherPlannerTitle")}</p>
-          <h2 className="mt-1 text-xl font-bold text-slate-900 sm:text-2xl dark:text-white">
+          <h2 className="mt-1 text-xl font-bold text-fg sm:text-2xl">
             {t("teacherScheduleTitle")}
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-7 text-muted">{t("schedulesLead")}</p>
@@ -209,7 +209,7 @@ export function TeacherSchedulePlanner() {
                           }))
                         }
                         placeholder={t("teacherSlotPlaceholder")}
-                        className="w-full min-w-0 rounded-md border border-transparent bg-white px-2 py-2 text-xs text-slate-900 outline-none ring-emerald/30 placeholder:text-slate-400 focus:border-emerald/40 focus:ring-2 dark:bg-slate-950 dark:text-white"
+                        className="w-full min-w-0 rounded-md border border-line bg-surface px-2 py-2 text-xs text-fg outline-none ring-emerald/30 placeholder:text-muted focus:border-emerald/40 focus:ring-2"
                         dir={dir}
                       />
                     </td>

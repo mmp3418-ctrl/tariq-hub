@@ -26,7 +26,7 @@ function createRow(): Row {
 }
 
 const fieldClass =
-  "w-full min-w-0 rounded-md border border-transparent bg-white px-2 py-2 text-xs outline-none ring-emerald/30 focus:border-emerald/40 focus:ring-2 dark:bg-slate-950";
+  "w-full min-w-0 rounded-md border border-line bg-surface px-2 py-2 text-xs text-fg outline-none ring-emerald/30 placeholder:text-muted focus:border-emerald/40 focus:ring-2";
 
 export function GradeCalculator() {
   const { t, dir } = usePreferences();
@@ -54,7 +54,7 @@ export function GradeCalculator() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm text-teal">{t("teacherCalcTitle")}</p>
-          <h2 className="mt-1 text-xl font-bold text-slate-900 sm:text-2xl dark:text-white">{t("teacherCalcTitle")}</h2>
+          <h2 className="mt-1 text-xl font-bold text-fg sm:text-2xl">{t("teacherCalcTitle")}</h2>
           <p className="mt-2 max-w-2xl text-sm leading-7 text-muted">{t("teacherCalcLead")}</p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -124,7 +124,7 @@ export function GradeCalculator() {
               <span className="font-semibold text-teal" dir="ltr">
                 {t("teacherCalcTotal")}: {totals[index].total.toFixed(1)}
               </span>
-              <span className="font-semibold text-slate-800 dark:text-white" dir="ltr">
+              <span className="font-semibold text-fg" dir="ltr">
                 {t("teacherCalcAverage")}: {totals[index].average.toFixed(1)}
               </span>
             </div>

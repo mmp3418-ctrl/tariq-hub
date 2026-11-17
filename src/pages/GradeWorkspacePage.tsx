@@ -16,7 +16,9 @@ import {
   useGradeNotes,
   useLessonsByUnit,
   useNotesByLesson,
+  useNotesByUnit,
   usePlaylistsByLesson,
+  usePlaylistsByUnit,
   useStage,
   useUnitsByGrade,
 } from "../services/hooks/useCurriculum.ts";
@@ -41,7 +43,7 @@ function CategoryGroup({
 }) {
   if (notes.length === 0 && playlists.length === 0) return null;
   return (
-    <div className="rounded-xl border border-line bg-white/60 p-3 dark:bg-slate-950/40">
+    <div className="rounded-xl border border-line bg-white/80 p-3 dark:bg-slate-900/70">
       <div className="mb-2 flex items-center gap-2">
         <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-bold text-teal">{title}</span>
         {locked ? <ComingSoonBadge /> : null}
@@ -50,9 +52,12 @@ function CategoryGroup({
         {notes.map((note) => {
           const soon = locked || note.isComingSoon;
           return (
-            <li key={note.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line px-3 py-2">
+            <li
+              key={note.id}
+              className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg border border-line bg-surface/80 px-3 py-2"
+            >
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{note.title}</p>
+                <p className="truncate text-sm font-semibold text-fg">{note.title}</p>
                 {soon ? <ComingSoonBadge className="mt-1" /> : null}
               </div>
               <div className="flex gap-3 text-xs font-semibold">
@@ -65,12 +70,12 @@ function CategoryGroup({
                   {t("quickPreview")}
                 </button>
                 {soon ? (
-                  <span className="inline-flex items-center gap-1 text-slate-400">
+                  <span className="inline-flex items-center gap-1 text-muted">
                     <Download className="size-3.5" />
                     {t("download")}
                   </span>
                 ) : (
-                  <a href={note.fileUrl} download={note.fileName} className="inline-flex items-center gap-1">
+                  <a href={note.fileUrl} download={note.fileName} className="inline-flex items-center gap-1 text-fg">
                     <Download className="size-3.5" />
                     {t("download")}
                   </a>
@@ -82,9 +87,12 @@ function CategoryGroup({
         {playlists.map((lesson) => {
           const soon = locked || lesson.isComingSoon;
           return (
-            <li key={lesson.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line px-3 py-2">
+            <li
+              key={lesson.id}
+              className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg border border-line bg-surface/80 px-3 py-2"
+            >
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{lesson.title}</p>
+                <p className="truncate text-sm font-semibold text-fg">{lesson.title}</p>
                 {soon ? <ComingSoonBadge className="mt-1" /> : null}
               </div>
               <button
@@ -100,6 +108,69 @@ function CategoryGroup({
           );
         })}
       </ul>
+    </div>
+  );
+}
+
+function MaterialGroups({
+  notes,
+  playlists,
+  onPreview,
+  onPlay,
+  t,
+  locale,
+  locked,
+}: {
+  notes: CatalogNote[];
+  playlists: CatalogLesson[];
+  onPreview: (note: CatalogNote) => void;
+  onPlay: (lesson: CatalogLesson) => void;
+  t: (key: string) => string;
+  locale: "ar" | "en";
+  locked?: boolean;
+}) {
+  const groups = useMemo(() => {
+    return RESOURCE_CATEGORIES.map((category) => ({
+      ...category,
+      notes: notes.filter((note) => note.category === category.value),
+      playlists: playlists.filter((item) => item.category === category.value),
+    })).filter((group) => group.notes.length > 0 || group.playlists.length > 0);
+  }, [notes, playlists]);
+
+  const uncategorizedNotes = notes.filter((note) => !RESOURCE_CATEGORIES.some((c) => c.value === note.category));
+  const uncategorizedPlaylists = playlists.filter(
+    (item) => !RESOURCE_CATEGORIES.some((c) => c.value === item.category),
+  );
+
+  if (groups.length === 0 && uncategorizedNotes.length === 0 && uncategorizedPlaylists.length === 0) {
+    return <p className="text-sm text-muted">{t("noResults")}</p>;
+  }
+
+  return (
+    <div className="space-y-3">
+      {groups.map((group) => (
+        <CategoryGroup
+          key={group.value}
+          title={categoryLabel(group.value, t, locale)}
+          notes={group.notes}
+          playlists={group.playlists}
+          onPreview={onPreview}
+          onPlay={onPlay}
+          t={t}
+          locked={locked}
+        />
+      ))}
+      {uncategorizedNotes.length > 0 || uncategorizedPlaylists.length > 0 ? (
+        <CategoryGroup
+          title={t("categoryOther")}
+          notes={uncategorizedNotes}
+          playlists={uncategorizedPlaylists}
+          onPreview={onPreview}
+          onPlay={onPlay}
+          t={t}
+          locked={locked}
+        />
+      ) : null}
     </div>
   );
 }
@@ -125,19 +196,6 @@ function LessonBlock({
   const playlists = usePlaylistsByLesson(lessonId);
   const [open, setOpen] = useState(true);
 
-  const groups = useMemo(() => {
-    return RESOURCE_CATEGORIES.map((category) => ({
-      ...category,
-      notes: notes.filter((note) => note.category === category.value),
-      playlists: playlists.filter((item) => item.category === category.value),
-    })).filter((group) => group.notes.length > 0 || group.playlists.length > 0);
-  }, [notes, playlists]);
-
-  const uncategorizedNotes = notes.filter((note) => !RESOURCE_CATEGORIES.some((c) => c.value === note.category));
-  const uncategorizedPlaylists = playlists.filter(
-    (item) => !RESOURCE_CATEGORIES.some((c) => c.value === item.category),
-  );
-
   return (
     <div className="rounded-xl border border-line">
       <button
@@ -146,39 +204,22 @@ function LessonBlock({
         className="flex w-full items-center justify-between gap-3 px-3 py-3 text-start"
       >
         <div className="flex min-w-0 items-center gap-2">
-          <p className="truncate text-sm font-bold text-slate-900 dark:text-white">{title}</p>
+          <p className="truncate text-sm font-bold text-fg">{title}</p>
           {isComingSoon ? <ComingSoonBadge /> : null}
         </div>
         <ChevronDown className={`size-4 shrink-0 text-teal transition ${open ? "rotate-180" : ""}`} />
       </button>
       {open ? (
         <div className="space-y-3 border-t border-line p-3">
-          {groups.map((group) => (
-            <CategoryGroup
-              key={group.value}
-              title={categoryLabel(group.value, t, locale)}
-              notes={group.notes}
-              playlists={group.playlists}
-              onPreview={onPreview}
-              onPlay={onPlay}
-              t={t}
-              locked={isComingSoon}
-            />
-          ))}
-          {uncategorizedNotes.length > 0 || uncategorizedPlaylists.length > 0 ? (
-            <CategoryGroup
-              title={t("categoryOther")}
-              notes={uncategorizedNotes}
-              playlists={uncategorizedPlaylists}
-              onPreview={onPreview}
-              onPlay={onPlay}
-              t={t}
-              locked={isComingSoon}
-            />
-          ) : null}
-          {groups.length === 0 && uncategorizedNotes.length === 0 && uncategorizedPlaylists.length === 0 ? (
-            <p className="text-sm text-muted">{t("noResults")}</p>
-          ) : null}
+          <MaterialGroups
+            notes={notes}
+            playlists={playlists}
+            onPreview={onPreview}
+            onPlay={onPlay}
+            t={t}
+            locale={locale}
+            locked={isComingSoon}
+          />
         </div>
       ) : null}
     </div>
@@ -203,6 +244,8 @@ function UnitBlock({
   locale: "ar" | "en";
 }) {
   const lessons = useLessonsByUnit(unitId);
+  const unitNotes = useNotesByUnit(unitId);
+  const unitPlaylists = usePlaylistsByUnit(unitId);
   const [open, setOpen] = useState(true);
 
   return (
@@ -213,30 +256,49 @@ function UnitBlock({
         className="flex w-full items-center justify-between gap-3 px-4 py-4 text-start sm:px-5"
       >
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white">{title}</h3>
+          <h3 className="text-lg font-bold text-fg">{title}</h3>
           {isComingSoon ? <ComingSoonBadge /> : null}
         </div>
         <ChevronDown className={`size-4 shrink-0 text-teal transition ${open ? "rotate-180" : ""}`} />
       </button>
       {open ? (
-        <div className="space-y-3 border-t border-line px-4 py-4 sm:px-5">
-          <p className="text-xs font-semibold text-teal">{t("lessonsTitle")}</p>
-          {lessons.length === 0 ? (
-            <p className="text-sm text-muted">{t("noLessons")}</p>
-          ) : (
-            lessons.map((lesson) => (
-              <LessonBlock
-                key={lesson.id}
-                lessonId={lesson.id}
-                title={lesson.title}
-                isComingSoon={isComingSoon || lesson.isComingSoon}
+        <div className="space-y-5 border-t border-line px-4 py-4 sm:px-5">
+          {(unitNotes.length > 0 || unitPlaylists.length > 0) && (
+            <div>
+              <p className="mb-3 text-xs font-semibold text-teal">{t("resourcesForGrade")}</p>
+              <MaterialGroups
+                notes={unitNotes}
+                playlists={unitPlaylists}
                 onPreview={onPreview}
                 onPlay={onPlay}
                 t={t}
                 locale={locale}
+                locked={isComingSoon}
               />
-            ))
+            </div>
           )}
+
+          <div>
+            <p className="mb-3 text-xs font-semibold text-teal">{t("lessonsTitle")}</p>
+            {lessons.length === 0 ? (
+              <p className="text-sm text-muted">{t("noLessons")}</p>
+            ) : (
+              <div className="space-y-3">
+                {lessons.map((lesson) => (
+                  <LessonBlock
+                    key={lesson.id}
+                    lessonId={lesson.id}
+                    title={lesson.title}
+                    isComingSoon={isComingSoon || lesson.isComingSoon}
+                    onPreview={onPreview}
+                    onPlay={onPlay}
+                    t={t}
+                    locale={locale}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       ) : null}
     </section>
@@ -284,7 +346,7 @@ export function GradeWorkspacePage() {
       <Shell className="pt-10">
         <div className="mb-5">
           <p className="text-sm text-teal">{t("unitsTitle")}</p>
-          <h2 className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">{t("unitsTitle")}</h2>
+          <h2 className="mt-2 text-2xl font-bold text-fg">{t("unitsTitle")}</h2>
         </div>
 
         {units.length > 0 ? (
@@ -305,22 +367,13 @@ export function GradeWorkspacePage() {
         ) : (
           <div className="glass space-y-4 rounded-2xl p-5">
             <p className="text-sm text-muted">{t("noUnits")}</p>
-            <CategoryGroup
-              title={t("library")}
+            <MaterialGroups
               notes={fallbackNotes}
-              playlists={[]}
-              onPreview={setPreview}
-              onPlay={setActive}
-              t={t}
-              locked={gradeLocked}
-            />
-            <CategoryGroup
-              title={t("playlists")}
-              notes={[]}
               playlists={fallbackPlaylists}
               onPreview={setPreview}
               onPlay={setActive}
               t={t}
+              locale={locale}
               locked={gradeLocked}
             />
           </div>

@@ -16,8 +16,6 @@ import {
   type TeacherPortalSection,
 } from "../services/teacherPortal.tsx";
 
-const SECTIONS: TeacherPortalSection[] = ["resources", "schedules", "calculator"];
-
 function parseSection(value: string | null): TeacherPortalSection {
   if (value === "schedules" || value === "calculator" || value === "resources") return value;
   return "resources";
@@ -25,7 +23,7 @@ function parseSection(value: string | null): TeacherPortalSection {
 
 export function TeacherSpacePage() {
   const { t } = usePreferences();
-  const { calculatorLocked, schedulesVisible } = useTeacherPortal();
+  const { calculatorLocked, calculatorVisible, schedulesVisible } = useTeacherPortal();
   const [params, setParams] = useSearchParams();
   const section = parseSection(params.get("section"));
   usePageTitle(t("teacherSpace"));
@@ -36,15 +34,30 @@ export function TeacherSpacePage() {
     }
   }, [params, setParams]);
 
-  const tabs = useMemo(
-    () =>
-      [
-        { id: "resources" as const, label: t("teacherResourcesTitle") },
-        { id: "schedules" as const, label: t("schedulesPageTitle"), locked: !schedulesVisible },
-        { id: "calculator" as const, label: t("teacherCalcTitle"), locked: calculatorLocked },
-      ] as const,
-    [calculatorLocked, schedulesVisible, t],
-  );
+  useEffect(() => {
+    if (section === "calculator" && !calculatorVisible) {
+      setParams({ section: "resources" }, { replace: true });
+    }
+  }, [calculatorVisible, section, setParams]);
+
+  const tabs = useMemo(() => {
+    const items: Array<{
+      id: TeacherPortalSection;
+      label: string;
+      locked?: boolean;
+      hidden?: boolean;
+    }> = [
+      { id: "resources", label: t("teacherResourcesTitle") },
+      { id: "schedules", label: t("schedulesPageTitle"), locked: !schedulesVisible },
+      {
+        id: "calculator",
+        label: t("teacherCalcTitle"),
+        locked: calculatorLocked,
+        hidden: !calculatorVisible,
+      },
+    ];
+    return items.filter((tab) => !tab.hidden);
+  }, [calculatorLocked, calculatorVisible, schedulesVisible, t]);
 
   const catalogLinks = [
     {
@@ -101,13 +114,13 @@ export function TeacherSpacePage() {
               className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl border px-3.5 text-sm font-semibold transition ${
                 active
                   ? "border-emerald/40 bg-emerald-500/15 text-teal"
-                  : "border-line text-slate-600 hover:border-emerald/30 dark:text-slate-300"
+                  : "border-line text-slate-700 hover:border-emerald/30 dark:text-slate-200"
               }`}
             >
               {tab.id === "schedules" ? <CalendarDays className="size-3.5" /> : null}
               {tab.id === "calculator" ? <Calculator className="size-3.5" /> : null}
               <span>{tab.label}</span>
-              {"locked" in tab && tab.locked ? <ComingSoonBadge /> : null}
+              {tab.locked ? <ComingSoonBadge /> : null}
             </button>
           );
         })}
@@ -120,9 +133,7 @@ export function TeacherSpacePage() {
           <div className="space-y-8">
             <section className="glass overflow-hidden rounded-2xl p-4 sm:p-6">
               <p className="text-sm text-teal">{t("activeSchedulesKicker")}</p>
-              <h2 className="mt-1 text-xl font-bold text-slate-900 sm:text-2xl dark:text-white">
-                {t("activeSchedulesTitle")}
-              </h2>
+              <h2 className="mt-1 text-xl font-bold text-fg sm:text-2xl">{t("activeSchedulesTitle")}</h2>
               <p className="mt-2 max-w-2xl text-sm leading-7 text-muted">{t("activeSchedulesLead")}</p>
               <PublishedSchedulesBoard />
             </section>
@@ -130,13 +141,13 @@ export function TeacherSpacePage() {
           </div>
         ) : null}
 
-        {section === "calculator" ? (
+        {section === "calculator" && calculatorVisible ? (
           <div className="glass overflow-hidden rounded-2xl p-4 sm:p-6">
             <GradeCalculatorToolsBoard />
             {calculatorLocked ? (
               <div className="rounded-xl border border-dashed border-amber-400/40 bg-amber-400/5 px-4 py-6">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-bold text-slate-900 dark:text-white">{t("teacherCalcTitle")}</p>
+                  <p className="text-sm font-bold text-fg">{t("teacherCalcTitle")}</p>
                   <ComingSoonBadge />
                 </div>
                 <p className="mt-2 text-sm leading-7 text-muted">{t("teacherCalcLockedLead")}</p>
@@ -147,8 +158,6 @@ export function TeacherSpacePage() {
           </div>
         ) : null}
       </div>
-
-      {!SECTIONS.includes(section) ? <TeacherResourcesBoard /> : null}
     </Shell>
   );
 }
