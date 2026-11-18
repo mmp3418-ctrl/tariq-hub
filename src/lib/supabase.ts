@@ -133,40 +133,49 @@ export function isRowComingSoon(row: { is_coming_soon?: boolean | null }) {
   return Boolean(row.is_coming_soon);
 }
 
+/** Row from public.social_links (clean) + legacy jsonb aliases. */
 export type DbSocialLink = {
-  platform?: string;
   id?: string;
-  url?: string;
-  href?: string;
-  label?: string;
-  handle?: string;
-  icon?: string;
+  platform_name?: string | null;
+  platform?: string | null;
+  url?: string | null;
+  href?: string | null;
+  icon_name?: string | null;
+  icon?: string | null;
+  label?: string | null;
+  handle?: string | null;
   custom_icon_url?: string | null;
   is_visible?: boolean | null;
   is_active?: boolean | null;
+  sort_order?: number | null;
 };
 
+/** Single-row public.site_settings — clean columns preferred. */
 export type DbSiteSettings = {
   id: number;
-  logo_url: string | null;
-  phone_number: string | null;
-  whatsapp_number: string | null;
-  telegram_link: string | null;
-  social_links: DbSocialLink[] | null;
+  email?: string | null;
+  location?: string | null;
+  whatsapp?: string | null;
+  telegram?: string | null;
+  google_maps_url?: string | null;
   updated_at: string;
+  logo_url?: string | null;
   hero_title_ar?: string | null;
   hero_title_en?: string | null;
   hero_subtitle_ar?: string | null;
   hero_subtitle_en?: string | null;
   book_year_label?: string | null;
-  /** Optional columns — present when admin/schema supports them. */
-  email?: string | null;
+  /** Populated from social_links table (preferred) or legacy jsonb. */
+  social_links?: DbSocialLink[] | null;
+  /** Legacy aliases kept for older rows. */
+  phone_number?: string | null;
+  whatsapp_number?: string | null;
+  telegram_link?: string | null;
   contact_email?: string | null;
   address?: string | null;
   address_text?: string | null;
   location_text?: string | null;
   maps_url?: string | null;
-  google_maps_url?: string | null;
   location_url?: string | null;
 };
 
@@ -324,22 +333,25 @@ export async function fetchRemoteResources(): Promise<DbResource[] | null> {
 
 export const defaultSiteSettings: DbSiteSettings = {
   id: 0,
-  logo_url: "",
-  phone_number: "",
-  whatsapp_number: "",
-  telegram_link: "",
+  email: "",
+  location: "",
+  whatsapp: "",
+  telegram: "",
+  google_maps_url: "",
   social_links: [],
   updated_at: new Date().toISOString(),
+  logo_url: "",
   hero_subtitle_ar: "منصتك التعليمية الشاملة للمنهج الليبي",
   hero_subtitle_en: "Your complete educational hub for the Libyan curriculum",
   book_year_label: "2026 - 2027",
-  email: "",
+  phone_number: "",
+  whatsapp_number: "",
+  telegram_link: "",
   contact_email: "",
   address: "",
   address_text: "",
   location_text: "",
   maps_url: "",
-  google_maps_url: "",
   location_url: "",
 };
 
@@ -439,17 +451,103 @@ export async function fetchActiveClassSchedules(): Promise<DbClassSchedule[] | n
   return null;
 }
 
-export async function fetchSiteSettings(): Promise<DbSiteSettings | null> {
+async function fetchSocialLinksTable(): Promise<DbSocialLink[] | null> {
   if (!supabase) return null;
-  const byId = await supabase.from("site_settings").select("*").eq("id", 1).maybeSingle();
-  if (!byId.error && byId.data) return byId.data as DbSiteSettings;
+  try {
+    const { data, error } = await supabase
+      .from("social_links")
+      .select("*")
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
 
-  const { data, error } = await supabase.from("site_settings").select("*").order("id", { ascending: true }).limit(1).maybeSingle();
-  if (error) {
-    console.warn("[tariq] site_settings fallback:", error.message);
+    if (error) {
+      // Table may not exist yet — caller falls back to jsonb.
+      console.warn("[tariq] social_links table:", error.message, error);
+      return null;
+    }
+    return (data as DbSocialLink[] | null) ?? [];
+  } catch (err) {
+    console.error("[tariq] social_links exception:", err);
     return null;
   }
-  return (data as DbSiteSettings | null) ?? null;
+}
+
+function normalizeSettingsRow(row: Record<string, unknown>): DbSiteSettings {
+  const jsonbLinks = Array.isArray(row.social_links)
+    ? (row.social_links as DbSocialLink[])
+    : [];
+
+  return {
+    id: Number(row.id ?? 1),
+    email: (row.email as string | null) ?? null,
+    location: (row.location as string | null) ?? null,
+    whatsapp: (row.whatsapp as string | null) ?? null,
+    telegram: (row.telegram as string | null) ?? null,
+    google_maps_url: (row.google_maps_url as string | null) ?? null,
+    updated_at: String(row.updated_at ?? new Date().toISOString()),
+    logo_url: (row.logo_url as string | null) ?? null,
+    hero_title_ar: (row.hero_title_ar as string | null) ?? null,
+    hero_title_en: (row.hero_title_en as string | null) ?? null,
+    hero_subtitle_ar: (row.hero_subtitle_ar as string | null) ?? null,
+    hero_subtitle_en: (row.hero_subtitle_en as string | null) ?? null,
+    book_year_label: (row.book_year_label as string | null) ?? null,
+    social_links: jsonbLinks,
+    phone_number: (row.phone_number as string | null) ?? null,
+    whatsapp_number: (row.whatsapp_number as string | null) ?? null,
+    telegram_link: (row.telegram_link as string | null) ?? null,
+    contact_email: (row.contact_email as string | null) ?? null,
+    address: (row.address as string | null) ?? null,
+    address_text: (row.address_text as string | null) ?? null,
+    location_text: (row.location_text as string | null) ?? null,
+    maps_url: (row.maps_url as string | null) ?? null,
+    location_url: (row.location_url as string | null) ?? null,
+  };
+}
+
+/**
+ * Loads site_settings (id=1) and prefers public.social_links rows over
+ * legacy site_settings.social_links jsonb.
+ */
+export async function fetchSiteSettings(): Promise<DbSiteSettings | null> {
+  if (!supabase) return null;
+
+  try {
+    let row: Record<string, unknown> | null = null;
+
+    const byId = await supabase.from("site_settings").select("*").eq("id", 1).maybeSingle();
+    if (byId.error) {
+      console.error("[tariq] site_settings by id:", byId.error.message, byId.error);
+    } else if (byId.data) {
+      row = byId.data as Record<string, unknown>;
+    }
+
+    if (!row) {
+      const fallback = await supabase
+        .from("site_settings")
+        .select("*")
+        .order("id", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (fallback.error) {
+        console.error("[tariq] site_settings fallback:", fallback.error.message, fallback.error);
+        return null;
+      }
+      row = (fallback.data as Record<string, unknown> | null) ?? null;
+    }
+
+    if (!row) return null;
+
+    const settings = normalizeSettingsRow(row);
+    const tableLinks = await fetchSocialLinksTable();
+    if (tableLinks !== null) {
+      settings.social_links = tableLinks;
+    }
+
+    return settings;
+  } catch (err) {
+    console.error("[tariq] fetchSiteSettings exception:", err);
+    return null;
+  }
 }
 
 export async function fetchActiveTeacherSchedules(): Promise<DbTeacherSchedule[] | null> {

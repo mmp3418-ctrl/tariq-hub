@@ -102,13 +102,20 @@ function normalizeSocial(entry: DbSocialLink | string, index: number): SocialLin
   if (!visible) return null;
 
   const rawUrl = firstNonEmpty(entry.url, entry.href);
-  const platform = (entry.platform || entry.id || platformFromUrl(rawUrl) || "globe").toLowerCase();
-  const icon = (entry.icon || platform).toLowerCase();
+  const platform = firstNonEmpty(
+    entry.platform_name,
+    entry.platform,
+    entry.id,
+    platformFromUrl(rawUrl),
+    "globe",
+  ).toLowerCase();
+  const icon = firstNonEmpty(entry.icon_name, entry.icon, platform).toLowerCase();
   const href = normalizeExternalHref(rawUrl, icon || platform);
   if (!href) return null;
 
-  const label = (entry.label || entry.platform || platform).trim() || platform;
-  const handle = (entry.handle || rawUrl.replace(/^https?:\/\//, "") || label).trim();
+  const label =
+    firstNonEmpty(entry.platform_name, entry.label, entry.platform, platform) || platform;
+  const handle = firstNonEmpty(entry.handle, rawUrl.replace(/^https?:\/\//, ""), label);
 
   return {
     id: entry.id || `${platform}-${index}`,
@@ -122,16 +129,20 @@ function normalizeSocial(entry: DbSocialLink | string, index: number): SocialLin
   };
 }
 
-function mapSettings(row: DbSiteSettings | null, source: "mock" | "supabase"): Omit<SiteSettings, "refresh" | "ready"> {
+function mapSettings(
+  row: DbSiteSettings | null,
+  source: "mock" | "supabase",
+): Omit<SiteSettings, "refresh" | "ready"> {
   const data = row ?? defaultSiteSettings;
   const rawLinks = Array.isArray(data.social_links) ? data.social_links : [];
   const socialLinks = rawLinks
     .map((entry, index) => normalizeSocial(entry as DbSocialLink | string, index))
     .filter((entry): entry is SocialLink => Boolean(entry));
 
-  const phoneNumber = (data.phone_number ?? "").trim();
-  const whatsappNumber = (data.whatsapp_number ?? "").trim();
-  const telegramRaw = (data.telegram_link ?? "").trim();
+  // Clean schema first, then legacy aliases.
+  const whatsappNumber = firstNonEmpty(data.whatsapp, data.whatsapp_number);
+  const telegramRaw = firstNonEmpty(data.telegram, data.telegram_link);
+  const phoneNumber = firstNonEmpty(data.phone_number);
 
   return {
     logoUrl: (data.logo_url ?? "").trim(),
@@ -139,9 +150,9 @@ function mapSettings(row: DbSiteSettings | null, source: "mock" | "supabase"): O
     whatsappNumber,
     telegramLink: telegramRaw ? toTelegramHref(telegramRaw) || telegramRaw : "",
     email: firstNonEmpty(data.email, data.contact_email),
-    address: firstNonEmpty(data.address, data.address_text, data.location_text),
+    address: firstNonEmpty(data.location, data.location_text, data.address, data.address_text),
     mapsUrl: normalizeExternalHref(
-      firstNonEmpty(data.maps_url, data.google_maps_url, data.location_url),
+      firstNonEmpty(data.google_maps_url, data.maps_url, data.location_url),
       "maps",
     ),
     socialLinks,
@@ -158,21 +169,28 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
 
   const hydrate = useCallback(async () => {
-    if (!isSupabaseConfigured) {
+    try {
+      if (!isSupabaseConfigured) {
+        setRow(defaultSiteSettings);
+        setSource("mock");
+        setReady(true);
+        return;
+      }
+      const remote = await fetchSiteSettings();
+      if (remote) {
+        setRow(remote);
+        setSource("supabase");
+      } else {
+        setRow(defaultSiteSettings);
+        setSource("mock");
+      }
+    } catch (err) {
+      console.error("[tariq] SiteSettingsProvider hydrate:", err);
       setRow(defaultSiteSettings);
       setSource("mock");
+    } finally {
       setReady(true);
-      return;
     }
-    const remote = await fetchSiteSettings();
-    if (remote) {
-      setRow(remote);
-      setSource("supabase");
-    } else {
-      setRow(defaultSiteSettings);
-      setSource("mock");
-    }
-    setReady(true);
   }, []);
 
   useEffect(() => {
@@ -198,16 +216,23 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
     const client = supabase;
     if (!client) return;
 
-    const channel = client
-      .channel("tariq-site-settings")
-      .on("postgres_changes", { event: "*", schema: "public", table: "site_settings" }, () => {
-        void fetchSiteSettings().then((remote) => {
+    const applyRemote = () => {
+      void fetchSiteSettings()
+        .then((remote) => {
           if (remote) {
             setRow(remote);
             setSource("supabase");
           }
+        })
+        .catch((err) => {
+          console.error("[tariq] site settings realtime refresh:", err);
         });
-      })
+    };
+
+    const channel = client
+      .channel("tariq-site-settings")
+      .on("postgres_changes", { event: "*", schema: "public", table: "site_settings" }, applyRemote)
+      .on("postgres_changes", { event: "*", schema: "public", table: "social_links" }, applyRemote)
       .subscribe();
 
     return () => {
