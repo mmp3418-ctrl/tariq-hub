@@ -5,6 +5,7 @@ import {
   type AcademicFlowStep,
 } from "../components/catalog/AcademicBrowseFlow.tsx";
 import { CatalogSkeleton } from "../components/ui/CatalogSkeleton.tsx";
+import { EmptyIcons, EmptyState } from "../components/ui/EmptyState.tsx";
 import { ExternalAnchor } from "../components/ui/ExternalAnchor.tsx";
 import { Folio } from "../components/ui/Folio.tsx";
 import { Shell } from "../components/ui/Shell.tsx";
@@ -15,13 +16,19 @@ import type { MaterialView } from "../services/academicCatalog.ts";
 
 const TYPE_ORDER = [
   "classbook",
+  "كتاب حصة",
   "book",
   "workbook",
+  "كتاب واجب",
   "notebook",
+  "كراسة",
   "note",
   "grammar",
+  "قواعد",
   "vocabulary",
+  "مفردات",
   "worksheet",
+  "ورقة عمل",
 ];
 
 function groupByType(items: MaterialView[]) {
@@ -117,10 +124,15 @@ export function LibraryPage() {
             setUnitId(null);
             setStep(units.length > 0 ? "units" : "grades");
           }}
-          emptyLabel={t("noResults")}
+          emptyLabel={t("emptyMaterialsLead")}
           content={
             groups.length === 0 ? (
-              <p className="text-sm leading-7 text-muted">{t("noGradeNotes")}</p>
+              <EmptyState
+                icon={EmptyIcons.materials}
+                title={t("emptyMaterialsTitle")}
+                description={t("emptyMaterialsLead")}
+                tone="soft"
+              />
             ) : (
               <div className="space-y-8">
                 <p className="text-sm text-muted">

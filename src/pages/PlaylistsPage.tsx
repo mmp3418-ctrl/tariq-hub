@@ -5,6 +5,7 @@ import {
   type AcademicFlowStep,
 } from "../components/catalog/AcademicBrowseFlow.tsx";
 import { CatalogSkeleton } from "../components/ui/CatalogSkeleton.tsx";
+import { EmptyIcons, EmptyState } from "../components/ui/EmptyState.tsx";
 import { ExternalAnchor } from "../components/ui/ExternalAnchor.tsx";
 import { Folio } from "../components/ui/Folio.tsx";
 import { Shell } from "../components/ui/Shell.tsx";
@@ -153,10 +154,15 @@ export function PlaylistsPage() {
             setUnitId(null);
             setStep(units.length > 0 ? "units" : "grades");
           }}
-          emptyLabel={t("noResults")}
+          emptyLabel={t("emptyPlaylistsLead")}
           content={
             total === 0 ? (
-              <p className="text-sm leading-7 text-muted">{t("noGradePlaylists")}</p>
+              <EmptyState
+                icon={EmptyIcons.playlists}
+                title={t("emptyPlaylistsTitle")}
+                description={t("emptyPlaylistsLead")}
+                tone="soft"
+              />
             ) : (
               <div className="space-y-8">
                 <p className="text-sm text-muted">

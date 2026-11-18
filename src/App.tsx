@@ -3,7 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes, useNavigate } from "react-route
 import { RootLayout } from "./layouts/RootLayout.tsx";
 import { ContactPage } from "./pages/ContactPage.tsx";
 import { GradeCalculatorPage } from "./pages/GradeCalculatorPage.tsx";
-import { GradeWorkspacePage } from "./pages/GradeWorkspacePage.tsx";
+import { GradeDetailsPage } from "./pages/GradeDetailsPage.tsx";
 import { GradesPage } from "./pages/GradesPage.tsx";
 import { HomePage } from "./pages/HomePage.tsx";
 import { LibraryPage } from "./pages/LibraryPage.tsx";
@@ -40,7 +40,7 @@ export default function App() {
         <Route element={<RootLayout />}>
           <Route index element={<HomePage />} />
           <Route path="grades" element={<GradesPage />} />
-          <Route path="grades/:gradeId" element={<GradeWorkspacePage />} />
+          <Route path="grades/:gradeId" element={<GradeDetailsPage />} />
           <Route path="library" element={<LibraryPage />} />
           <Route path="playlists" element={<PlaylistsPage />} />
           <Route path="schedules" element={<SchedulesPage />} />

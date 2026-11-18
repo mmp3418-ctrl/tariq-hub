@@ -43,6 +43,7 @@ export type DbVideoPlaylist = {
   id: string;
   title?: string | null;
   youtube_url?: string | null;
+  material_type?: string | null;
   stage_id?: string | null;
   grade_id?: string | null;
   unit_id?: string | null;
@@ -90,6 +91,9 @@ export type PlaylistView = {
   id: string;
   title: string;
   youtubeUrl: string;
+  materialType: string;
+  badgeAr: string;
+  badgeEn: string;
   stageId: string;
   gradeId: string;
   unitId: string;
@@ -99,7 +103,7 @@ export type PlaylistView = {
 };
 
 function activeRow(row: { is_active?: boolean | null }) {
-  return row.is_active !== false;
+  return row.is_active === true;
 }
 
 function resolvePdfUrl(row: DbEducationalMaterial) {
@@ -287,10 +291,14 @@ export async function fetchAcademicBundle(): Promise<AcademicBundle> {
       const youtubeUrl = normalizeExternalHref(row.youtube_url || "");
       const unitId = row.unit_id ? String(row.unit_id) : "";
       const typedUnit = (row.unit_name || "").trim();
+      const type = row.material_type ? normalizeMaterialType(row.material_type) : "";
       return {
         id: String(row.id),
         title: (row.title || "").trim() || "شرح",
         youtubeUrl,
+        materialType: type,
+        badgeAr: type ? materialTypeBadge(type, "ar") : "يوتيوب",
+        badgeEn: type ? materialTypeBadge(type, "en") : "YouTube",
         stageId: row.stage_id ? String(row.stage_id) : "",
         gradeId: row.grade_id ? String(row.grade_id) : "",
         unitId,

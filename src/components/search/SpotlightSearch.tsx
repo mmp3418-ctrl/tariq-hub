@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboa
 import { useNavigate } from "react-router-dom";
 import { usePreferences } from "../../lib/preferences.tsx";
 import { useSearch } from "../../lib/search.tsx";
-import { useCatalogLessons, useCatalogNotes, useGrades } from "../../services/hooks/useCurriculum.ts";
+import { useAcademicCatalog } from "../../services/AcademicCatalogProvider.tsx";
 
 type Category = "all" | "pdf" | "playlist" | "grade";
 
@@ -40,9 +40,7 @@ export function SpotlightSearch() {
   const { t, locale, dir, theme } = usePreferences();
   const reduce = useReducedMotion();
   const navigate = useNavigate();
-  const grades = useGrades();
-  const notes = useCatalogNotes();
-  const lessons = useCatalogLessons();
+  const { grades, stages, materials, playlists } = useAcademicCatalog();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [query, setQuery] = useState("");
@@ -50,29 +48,32 @@ export function SpotlightSearch() {
   const [active, setActive] = useState(0);
 
   const index = useMemo<Hit[]>(() => {
-    const gradeHits: Hit[] = grades.map((grade) => ({
+    const stageName = new Map((stages ?? []).map((s) => [s.id, s.name]));
+    const gradeHits: Hit[] = (grades ?? []).map((grade) => ({
       id: `grade-${grade.id}`,
       category: "grade",
-      title: grade.title,
-      meta: grade.subtitle,
+      title: grade.name,
+      meta: stageName.get(grade.stageId) || "",
       href: `/grades/${grade.id}`,
     }));
-    const noteHits: Hit[] = notes.map((note) => ({
+    const noteHits: Hit[] = (materials ?? []).map((note) => ({
       id: `pdf-${note.id}`,
       category: "pdf",
       title: note.title,
-      meta: `${note.gradeTitle} · ${note.subjectTitle}`,
-      href: "/library",
+      meta: [note.gradeName, note.unitName, locale === "en" ? note.badgeEn : note.badgeAr]
+        .filter(Boolean)
+        .join(" · "),
+      href: note.gradeId ? `/grades/${note.gradeId}` : "/library",
     }));
-    const lessonHits: Hit[] = lessons.map((lesson) => ({
+    const lessonHits: Hit[] = (playlists ?? []).map((lesson) => ({
       id: `pl-${lesson.id}`,
       category: "playlist",
       title: lesson.title,
-      meta: `${lesson.gradeTitle} · ${lesson.subjectTitle}`,
-      href: "/playlists",
+      meta: [lesson.gradeName, lesson.unitName].filter(Boolean).join(" · "),
+      href: lesson.gradeId ? `/grades/${lesson.gradeId}` : "/playlists",
     }));
     return [...gradeHits, ...noteHits, ...lessonHits];
-  }, [grades, lessons, notes]);
+  }, [grades, locale, materials, playlists, stages]);
 
   const pills: { id: Category; label: string }[] = [
     { id: "all", label: t("searchAll") },

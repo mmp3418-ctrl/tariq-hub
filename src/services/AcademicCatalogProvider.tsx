@@ -108,7 +108,7 @@ export function AcademicCatalogProvider({ children }: { children: ReactNode }) {
     if (!isSupabaseConfigured) return;
     const id = window.setInterval(() => {
       if (document.visibilityState === "visible") void hydrate();
-    }, 12_000);
+    }, 8_000);
     return () => window.clearInterval(id);
   }, [hydrate]);
 
@@ -130,7 +130,12 @@ export function AcademicCatalogProvider({ children }: { children: ReactNode }) {
   }, [hydrate]);
 
   const value = useMemo<AcademicCatalogValue>(() => {
-    const { stages, grades, units, materials, playlists, source } = bundle;
+    const stages = Array.isArray(bundle.stages) ? bundle.stages : [];
+    const grades = Array.isArray(bundle.grades) ? bundle.grades : [];
+    const units = Array.isArray(bundle.units) ? bundle.units : [];
+    const materials = Array.isArray(bundle.materials) ? bundle.materials : [];
+    const playlists = Array.isArray(bundle.playlists) ? bundle.playlists : [];
+    const { source } = bundle;
     return {
       ready,
       source,
@@ -139,15 +144,20 @@ export function AcademicCatalogProvider({ children }: { children: ReactNode }) {
       units,
       materials,
       playlists,
-      gradesByStage: (stageId) => grades.filter((g) => g.stageId === stageId),
-      unitsByGrade: (gradeId) => units.filter((u) => u.gradeId === gradeId),
-      materialsByGrade: (gradeId) => materials.filter((m) => m.gradeId === gradeId),
+      gradesByStage: (stageId) =>
+        stageId ? grades.filter((g) => g.stageId === stageId) : [],
+      unitsByGrade: (gradeId) =>
+        gradeId ? units.filter((u) => u.gradeId === gradeId) : [],
+      materialsByGrade: (gradeId) =>
+        gradeId ? materials.filter((m) => m.gradeId === gradeId) : [],
       materialsByUnit: (unitIdOrName) =>
-        materials.filter((m) => matchesUnit(m, unitIdOrName)),
-      playlistsByGrade: (gradeId) => playlists.filter((p) => p.gradeId === gradeId),
+        unitIdOrName ? materials.filter((m) => matchesUnit(m, unitIdOrName)) : [],
+      playlistsByGrade: (gradeId) =>
+        gradeId ? playlists.filter((p) => p.gradeId === gradeId) : [],
       playlistsByUnit: (unitIdOrName) =>
-        playlists.filter((p) => matchesUnit(p, unitIdOrName)),
-      playlistsByStage: (stageId) => playlists.filter((p) => p.stageId === stageId),
+        unitIdOrName ? playlists.filter((p) => matchesUnit(p, unitIdOrName)) : [],
+      playlistsByStage: (stageId) =>
+        stageId ? playlists.filter((p) => p.stageId === stageId) : [],
       refresh: hydrate,
     };
   }, [bundle, hydrate, ready]);

@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
 import { usePreferences } from "../../lib/preferences.tsx";
 import { useAcademicCatalog } from "../../services/AcademicCatalogProvider.tsx";
+import { EmptyIcons, EmptyState } from "../ui/EmptyState.tsx";
 
 export type AcademicFlowStep = "stages" | "grades" | "units" | "content";
 
@@ -18,7 +19,8 @@ type AcademicBrowseFlowProps = {
   onBackToGrades: () => void;
   onBackToUnits?: () => void;
   content: ReactNode;
-  emptyLabel: string;
+  /** Fallback empty copy; specific stage/grade/unit empties use dedicated i18n keys. */
+  emptyLabel?: string;
 };
 
 export function AcademicBrowseFlow({
@@ -37,13 +39,18 @@ export function AcademicBrowseFlow({
 }: AcademicBrowseFlowProps) {
   const { t, dir } = usePreferences();
   const { stages, gradesByStage, unitsByGrade } = useAcademicCatalog();
-  const grades = gradesByStage(stageId ?? "");
-  const units = unitsByGrade(gradeId ?? "");
+  const grades = Array.isArray(gradesByStage(stageId ?? ""))
+    ? gradesByStage(stageId ?? "")
+    : [];
+  const units = Array.isArray(unitsByGrade(gradeId ?? ""))
+    ? unitsByGrade(gradeId ?? "")
+    : [];
+  const safeStages = Array.isArray(stages) ? stages : [];
   const reduce = useReducedMotion();
   const BackIcon = dir === "rtl" ? ChevronRight : ChevronLeft;
   const ForwardIcon = dir === "rtl" ? ArrowLeft : ArrowRight;
 
-  const selectedStage = stages.find((s) => s.id === stageId);
+  const selectedStage = safeStages.find((s) => s.id === stageId);
   const selectedGrade = grades.find((g) => g.id === gradeId);
   const selectedUnit = units.find((u) => u.id === unitId);
   const showUnits = Boolean(gradeId) && units.length > 0;
@@ -59,22 +66,24 @@ export function AcademicBrowseFlow({
 
   return (
     <div className="mt-8">
-      <ol className="mb-6 flex flex-wrap items-center gap-2 text-xs font-semibold">
-        {crumbs.map((item, index) => (
-          <li key={item.id} className="flex items-center gap-2">
-            {index > 0 ? <span className="text-slate-300 dark:text-slate-600">/</span> : null}
-            <span
-              className={`rounded-full px-2.5 py-1 ${
-                item.active
-                  ? "bg-emerald-500/15 text-teal"
-                  : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
-              }`}
-            >
-              {item.label}
-            </span>
-          </li>
-        ))}
-      </ol>
+      {safeStages.length > 0 ? (
+        <ol className="mb-6 flex flex-wrap items-center gap-2 text-xs font-semibold">
+          {crumbs.map((item, index) => (
+            <li key={item.id} className="flex items-center gap-2">
+              {index > 0 ? <span className="text-slate-300 dark:text-slate-600">/</span> : null}
+              <span
+                className={`rounded-full px-2.5 py-1 ${
+                  item.active
+                    ? "bg-emerald-500/15 text-teal"
+                    : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+                }`}
+              >
+                {item.label}
+              </span>
+            </li>
+          ))}
+        </ol>
+      ) : null}
 
       <AnimatePresence mode="wait" initial={false}>
         {step === "stages" ? (
@@ -85,32 +94,38 @@ export function AcademicBrowseFlow({
             exit={reduce ? undefined : { opacity: 0, y: -6 }}
             transition={{ duration: 0.25 }}
           >
-            <p className="mb-4 text-sm text-muted">{t("chooseStageFirst")}</p>
-            {stages.length === 0 ? (
-              <p className="text-sm text-muted">{emptyLabel}</p>
+            {safeStages.length === 0 ? (
+              <EmptyState
+                icon={EmptyIcons.stages}
+                title={t("emptyStagesTitle")}
+                description={t("emptyStagesLead")}
+              />
             ) : (
-              <ul className="grid gap-3 sm:grid-cols-3">
-                {stages.map((stage, index) => (
-                  <li key={stage.id}>
-                    <button
-                      type="button"
-                      onClick={() => onSelectStage(stage.id)}
-                      className="glass theme-ease flex h-full w-full flex-col rounded-2xl p-5 text-start transition hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-24px_rgba(16,185,129,0.55)]"
-                    >
-                      <span className="font-display text-xs tracking-[0.16em] text-teal">
-                        {String(index + 1).padStart(2, "0")}
-                      </span>
-                      <span className="mt-3 text-xl font-bold text-slate-900 dark:text-white">
-                        {stage.name}
-                      </span>
-                      <span className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-teal">
-                        {t("showGrades")}
-                        <ForwardIcon className="size-4" />
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <>
+                <p className="mb-4 text-sm text-muted">{t("chooseStageFirst")}</p>
+                <ul className="grid gap-3 sm:grid-cols-3">
+                  {safeStages.map((stage, index) => (
+                    <li key={stage.id || `stage-${index}`}>
+                      <button
+                        type="button"
+                        onClick={() => onSelectStage(stage.id)}
+                        className="glass theme-ease flex h-full w-full flex-col rounded-2xl p-5 text-start transition hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-24px_rgba(16,185,129,0.55)]"
+                      >
+                        <span className="font-display text-xs tracking-[0.16em] text-teal">
+                          {String(index + 1).padStart(2, "0")}
+                        </span>
+                        <span className="mt-3 text-xl font-bold text-slate-900 dark:text-white">
+                          {stage.name || t("comingSoon")}
+                        </span>
+                        <span className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-teal">
+                          {t("showGrades")}
+                          <ForwardIcon className="size-4" />
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
             )}
           </motion.div>
         ) : null}
@@ -140,11 +155,16 @@ export function AcademicBrowseFlow({
               </button>
             </div>
             {grades.length === 0 ? (
-              <p className="text-sm text-muted">{emptyLabel}</p>
+              <EmptyState
+                icon={EmptyIcons.stages}
+                title={t("emptyGradesTitle")}
+                description={emptyLabel || t("emptyGradesLead")}
+                tone="soft"
+              />
             ) : (
               <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {grades.map((grade, index) => (
-                  <li key={grade.id}>
+                  <li key={grade.id || `grade-${index}`}>
                     <button
                       type="button"
                       onClick={() => onSelectGrade(grade.id)}
@@ -155,7 +175,7 @@ export function AcademicBrowseFlow({
                           {String(index + 1).padStart(2, "0")}
                         </span>
                         <span className="mt-1 block text-base font-bold text-slate-900 dark:text-white">
-                          {grade.name}
+                          {grade.name || t("comingSoon")}
                         </span>
                       </span>
                       <ForwardIcon className="size-4 shrink-0 text-teal" />
@@ -195,11 +215,16 @@ export function AcademicBrowseFlow({
               </button>
             </div>
             {units.length === 0 ? (
-              <p className="text-sm text-muted">{t("noUnits")}</p>
+              <EmptyState
+                icon={EmptyIcons.stages}
+                title={t("emptyUnitsTitle")}
+                description={t("noUnits")}
+                tone="soft"
+              />
             ) : (
               <ul className="grid gap-2 sm:grid-cols-2">
                 {units.map((unit, index) => (
-                  <li key={unit.id}>
+                  <li key={unit.id || `unit-${index}`}>
                     <button
                       type="button"
                       onClick={() => onSelectUnit?.(unit.id)}
@@ -210,7 +235,7 @@ export function AcademicBrowseFlow({
                           {String(index + 1).padStart(2, "0")}
                         </span>
                         <span className="mt-1 block truncate text-base font-bold text-slate-900 dark:text-white">
-                          {unit.name}
+                          {unit.name || t("comingSoon")}
                         </span>
                       </span>
                       <ForwardIcon className="size-4 shrink-0 text-teal" />
