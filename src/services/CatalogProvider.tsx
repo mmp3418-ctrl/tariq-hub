@@ -238,10 +238,10 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       lessonsByGrade: (gradeId: string) => mapped.lessons.filter((lesson) => lesson.gradeId === gradeId),
       notesByLesson: (lessonId: string) => mapped.notes.filter((note) => note.lessonId === lessonId),
       playlistsByLesson: (lessonId: string) => mapped.lessons.filter((lesson) => lesson.lessonId === lessonId),
-      notesByUnit: (unitId: string) =>
-        mapped.notes.filter((note) => note.unitId === unitId && !note.lessonId),
+      // All materials linked to the unit (including lesson-scoped rows).
+      notesByUnit: (unitId: string) => mapped.notes.filter((note) => note.unitId === unitId),
       playlistsByUnit: (unitId: string) =>
-        mapped.lessons.filter((lesson) => lesson.unitId === unitId && !lesson.lessonId),
+        mapped.lessons.filter((lesson) => lesson.unitId === unitId),
       refresh: hydrate,
     }),
     [

@@ -3,19 +3,29 @@ import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
 import { gradeLabel, stageLabel } from "../../i18n/content.ts";
 import { usePreferences } from "../../lib/preferences.tsx";
-import { useGradesByStage, useStages } from "../../services/hooks/useCurriculum.ts";
+import {
+  useGradesByStage,
+  useStages,
+  useUnitsByGrade,
+} from "../../services/hooks/useCurriculum.ts";
 import type { StageId } from "../../services/types.ts";
+import { ComingSoonBadge } from "../ui/ComingSoonBadge.tsx";
 
-export type FlowStep = "stages" | "grades" | "content";
+export type FlowStep = "stages" | "grades" | "units" | "content";
 
 type StageGradeFlowProps = {
   step: FlowStep;
   stageId: StageId | null;
   gradeId: string | null;
+  unitId?: string | null;
   onSelectStage: (id: StageId) => void;
   onSelectGrade: (id: string) => void;
+  onSelectUnit?: (id: string) => void;
   onBackToStages: () => void;
   onBackToGrades: () => void;
+  onBackToUnits?: () => void;
+  /** When false, skip the units step and go grade → content. */
+  enableUnits?: boolean;
   content: ReactNode;
   emptyLabel: string;
 };
@@ -24,15 +34,20 @@ export function StageGradeFlow({
   step,
   stageId,
   gradeId,
+  unitId = null,
   onSelectStage,
   onSelectGrade,
+  onSelectUnit,
   onBackToStages,
   onBackToGrades,
+  onBackToUnits,
+  enableUnits = true,
   content,
   emptyLabel,
 }: StageGradeFlowProps) {
   const stages = useStages();
   const grades = useGradesByStage(stageId ?? "");
+  const units = useUnitsByGrade(gradeId ?? "");
   const { t, locale, dir } = usePreferences();
   const reduce = useReducedMotion();
   const BackIcon = dir === "rtl" ? ChevronRight : ChevronLeft;
@@ -40,15 +55,22 @@ export function StageGradeFlow({
 
   const selectedStage = stages.find((stage) => stage.id === stageId);
   const selectedGrade = grades.find((grade) => grade.id === gradeId);
+  const selectedUnit = units.find((unit) => unit.id === unitId);
+  const showUnitsStep = enableUnits && Boolean(gradeId) && units.length > 0;
+
+  const crumbs = [
+    { id: "stages" as const, label: t("stepStages"), active: step === "stages" },
+    { id: "grades" as const, label: t("stepGrades"), active: step === "grades" },
+    ...(showUnitsStep || step === "units"
+      ? [{ id: "units" as const, label: t("stepUnits"), active: step === "units" }]
+      : []),
+    { id: "content" as const, label: t("stepContent"), active: step === "content" },
+  ];
 
   return (
     <div className="mt-8">
       <ol className="mb-6 flex flex-wrap items-center gap-2 text-xs font-semibold">
-        {[
-          { id: "stages" as const, label: t("stepStages"), active: step === "stages" },
-          { id: "grades" as const, label: t("stepGrades"), active: step === "grades" },
-          { id: "content" as const, label: t("stepContent"), active: step === "content" },
-        ].map((item, index) => (
+        {crumbs.map((item, index) => (
           <li key={item.id} className="flex items-center gap-2">
             {index > 0 ? <span className="text-slate-300 dark:text-slate-600">/</span> : null}
             <span
@@ -140,6 +162,7 @@ export function StageGradeFlow({
                       <span className="mt-1 block text-xs text-muted">
                         {gradeLabel(locale, grade.id, grade.subtitle, "subtitle")}
                       </span>
+                      {grade.isComingSoon ? <ComingSoonBadge className="mt-2" /> : null}
                     </span>
                     <ForwardIcon className="size-4 shrink-0 text-teal" />
                   </button>
@@ -147,6 +170,61 @@ export function StageGradeFlow({
               ))}
             </ul>
             {grades.length === 0 ? <p className="mt-6 text-sm text-muted">{emptyLabel}</p> : null}
+          </motion.div>
+        ) : null}
+
+        {step === "units" && stageId && gradeId ? (
+          <motion.div
+            key="units"
+            initial={reduce ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduce ? undefined : { opacity: 0, y: -6 }}
+            transition={{ duration: 0.25 }}
+          >
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm text-teal">
+                  {selectedStage ? stageLabel(locale, selectedStage.id, selectedStage.title) : ""}
+                  {selectedGrade ? ` · ${gradeLabel(locale, selectedGrade.id, selectedGrade.title)}` : ""}
+                </p>
+                <h2 className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{t("chooseUnitNext")}</h2>
+              </div>
+              <button
+                type="button"
+                onClick={onBackToGrades}
+                className="inline-flex items-center gap-1 text-sm font-semibold text-teal"
+              >
+                <BackIcon className="size-4" />
+                {t("backToGrades")}
+              </button>
+            </div>
+
+            {units.length === 0 ? (
+              <p className="text-sm leading-7 text-muted">{t("noUnits")}</p>
+            ) : (
+              <ul className="grid gap-2 sm:grid-cols-2">
+                {units.map((unit, index) => (
+                  <li key={unit.id}>
+                    <button
+                      type="button"
+                      onClick={() => onSelectUnit?.(unit.id)}
+                      className="glass flex w-full items-center justify-between gap-3 rounded-xl px-4 py-4 text-start transition hover:bg-emerald-500/10"
+                    >
+                      <span className="min-w-0">
+                        <span className="font-display text-[11px] tracking-[0.14em] text-teal">
+                          {String(index + 1).padStart(2, "0")}
+                        </span>
+                        <span className="mt-1 block truncate text-base font-bold text-slate-900 dark:text-white">
+                          {unit.title}
+                        </span>
+                        {unit.isComingSoon ? <ComingSoonBadge className="mt-2" /> : null}
+                      </span>
+                      <ForwardIcon className="size-4 shrink-0 text-teal" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </motion.div>
         ) : null}
 
@@ -163,16 +241,22 @@ export function StageGradeFlow({
                 <p className="text-sm text-teal">
                   {selectedStage ? stageLabel(locale, selectedStage.id, selectedStage.title) : ""}
                   {selectedGrade ? ` · ${gradeLabel(locale, selectedGrade.id, selectedGrade.title)}` : ""}
+                  {selectedUnit ? ` · ${selectedUnit.title}` : ""}
                 </p>
-                <h2 className="mt-1 text-xl font-bold text-slate-900 dark:text-white">{t("resourcesForGrade")}</h2>
+                <h2 className="mt-1 text-xl font-bold text-slate-900 dark:text-white">
+                  {selectedUnit ? t("resourcesForUnit") : t("resourcesForGrade")}
+                </h2>
               </div>
               <button
                 type="button"
-                onClick={onBackToGrades}
+                onClick={() => {
+                  if (showUnitsStep && onBackToUnits) onBackToUnits();
+                  else onBackToGrades();
+                }}
                 className="inline-flex items-center gap-1 text-sm font-semibold text-teal"
               >
                 <BackIcon className="size-4" />
-                {t("backToGrades")}
+                {showUnitsStep ? t("backToUnits") : t("backToGrades")}
               </button>
             </div>
             {content}

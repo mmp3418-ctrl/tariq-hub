@@ -336,22 +336,38 @@ export async function fetchRemoteAnnouncements(): Promise<DbAnnouncement[] | nul
 
 export async function fetchRemoteGrades(): Promise<DbGrade[] | null> {
   if (!supabase) return null;
-  const { data, error } = await supabase.from("grades").select("*").order("sort_order", { ascending: true });
-  if (error) {
-    console.warn("[tariq] grades fallback:", error.message);
+  try {
+    const { data, error } = await supabase
+      .from("grades")
+      .select("*")
+      .order("sort_order", { ascending: true });
+    if (error) {
+      console.warn("[tariq] grades fallback:", error.message, error);
+      return null;
+    }
+    return data ?? [];
+  } catch (err) {
+    console.error("[tariq] fetchRemoteGrades exception:", err);
     return null;
   }
-  return data ?? [];
 }
 
 export async function fetchRemoteResources(): Promise<DbResource[] | null> {
   if (!supabase) return null;
-  const { data, error } = await supabase.from("resources").select("*").order("created_at", { ascending: false });
-  if (error) {
-    console.warn("[tariq] resources fallback:", error.message);
+  try {
+    const { data, error } = await supabase
+      .from("resources")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.warn("[tariq] resources fallback:", error.message, error);
+      return null;
+    }
+    return data ?? [];
+  } catch (err) {
+    console.error("[tariq] fetchRemoteResources exception:", err);
     return null;
   }
-  return data ?? [];
 }
 
 export const defaultSiteSettings: DbSiteSettings = {
@@ -380,22 +396,32 @@ export const defaultSiteSettings: DbSiteSettings = {
 
 export async function fetchRemoteUnits(): Promise<DbUnit[] | null> {
   if (!supabase) return null;
-  const { data, error } = await supabase.from("units").select("*");
-  if (error) {
-    console.warn("[tariq] units fallback:", error.message);
+  try {
+    const { data, error } = await supabase.from("units").select("*");
+    if (error) {
+      console.warn("[tariq] units fallback:", error.message, error);
+      return null;
+    }
+    return (data as DbUnit[] | null) ?? [];
+  } catch (err) {
+    console.error("[tariq] fetchRemoteUnits exception:", err);
     return null;
   }
-  return (data as DbUnit[] | null) ?? [];
 }
 
 export async function fetchRemoteLessons(): Promise<DbLesson[] | null> {
   if (!supabase) return null;
-  const { data, error } = await supabase.from("lessons").select("*");
-  if (error) {
-    console.warn("[tariq] lessons fallback:", error.message);
+  try {
+    const { data, error } = await supabase.from("lessons").select("*");
+    if (error) {
+      console.warn("[tariq] lessons fallback:", error.message, error);
+      return null;
+    }
+    return (data as DbLesson[] | null) ?? [];
+  } catch (err) {
+    console.error("[tariq] fetchRemoteLessons exception:", err);
     return null;
   }
-  return (data as DbLesson[] | null) ?? [];
 }
 
 export async function fetchTeacherResources(): Promise<DbTeacherResource[] | null> {

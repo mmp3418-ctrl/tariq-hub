@@ -151,30 +151,51 @@ export function mapDbResources(
   grades: DbGrade[],
   locale: "ar" | "en",
 ): { notes: CatalogNote[]; lessons: CatalogLesson[] } {
-  const byId = new Map(grades.map((grade) => [grade.id, grade]));
+  const byId = new Map<string, DbGrade>();
+  for (const grade of grades) {
+    byId.set(grade.id, grade);
+    if (grade.slug) byId.set(grade.slug, grade);
+  }
   const notes: CatalogNote[] = [];
   const lessons: CatalogLesson[] = [];
 
   for (const resource of resources) {
+    if (!resource?.id || !resource.grade_id) continue;
     const grade = byId.get(resource.grade_id);
     if (!grade) continue;
-    const gradeId = grade.slug || grade.id;
+
     const stageId = grade.stage;
+    if (!stageMeta[stageId]) continue;
+
+    const gradeId = grade.slug || grade.id;
     const stageTitle = locale === "en" ? stageMeta[stageId].titleEn : stageMeta[stageId].titleAr;
     const gradeTitle = locale === "en" ? grade.title_en : grade.title_ar;
-    const subjectTitle = locale === "en" ? resource.subject_en : resource.subject_ar;
-    const title = locale === "en" ? resource.title_en : resource.title_ar;
+    const subjectTitle =
+      (locale === "en" ? resource.subject_en : resource.subject_ar) ||
+      resource.subject_ar ||
+      resource.subject_en ||
+      "";
+    const title =
+      (locale === "en" ? resource.title_en : resource.title_ar) ||
+      resource.title_ar ||
+      resource.title_en ||
+      "Untitled";
     const code = subjectCode(subjectTitle);
+    const type = String(resource.type || "").toLowerCase();
+    const isPdf = type === "pdf" || type === "document" || type === "book" || type === "note";
 
-    if (resource.type === "pdf") {
+    if (isPdf) {
       notes.push({
         id: resource.id,
         subjectId: `${gradeId}-${code.toLowerCase()}`,
         title,
         detail: resource.term ?? "",
-        kind: title.includes("ورقة") || title.toLowerCase().includes("worksheet") ? "ورقة عمل" : "ملخص",
-        fileUrl: resource.url,
-        fileName: `${grade.slug || "note"}.pdf`,
+        kind:
+          title.includes("ورقة") || title.toLowerCase().includes("worksheet")
+            ? "ورقة عمل"
+            : "ملخص",
+        fileUrl: resource.url || "",
+        fileName: `${grade.slug || "note"}-${resource.id}.pdf`,
         subjectTitle,
         subjectCode: code,
         gradeId,
@@ -184,13 +205,14 @@ export function mapDbResources(
         ...resourceVisual(resource, locale, "file-text"),
       });
     } else {
+      const videoUrl = resource.url || "";
       lessons.push({
         id: resource.id,
         subjectId: `${gradeId}-${code.toLowerCase()}`,
         title,
         detail: resource.term ?? "",
-        playlistId: playlistIdFromUrl(resource.url),
-        videoUrl: resource.url,
+        playlistId: playlistIdFromUrl(videoUrl),
+        videoUrl,
         subjectTitle,
         subjectCode: code,
         gradeId,
