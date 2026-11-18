@@ -85,6 +85,18 @@ export function normalizeMediaHref(raw: string) {
   return "";
 }
 
+/** CTA / in-app destinations: external URL or a single-root SPA path like `/grades`. */
+export function normalizeAppHref(raw: string) {
+  const value = raw.trim();
+  if (!value) return "";
+  const external = normalizeExternalHref(value);
+  if (external) return external;
+  if (value.startsWith("/") && !value.startsWith("//") && !value.includes("://")) {
+    return value;
+  }
+  return "";
+}
+
 export function isInternalSafeScheme(href: string) {
   return href.startsWith("mailto:") || href.startsWith("tel:");
 }

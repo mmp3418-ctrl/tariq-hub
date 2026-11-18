@@ -2,21 +2,35 @@ import { motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft, ArrowRight, BookOpen, Clapperboard, GraduationCap, Layers } from "lucide-react";
 import { Link } from "react-router-dom";
 import { HeroBook3D } from "../components/brand/HeroBook3D.tsx";
+import { BooksSection } from "../components/home/BooksSection.tsx";
 import { Folio } from "../components/ui/Folio.tsx";
+import { ExternalAnchor } from "../components/ui/ExternalAnchor.tsx";
 import { Shell } from "../components/ui/Shell.tsx";
 import { usePageTitle } from "../lib/usePageTitle.ts";
 import { usePreferences } from "../lib/preferences.tsx";
+import { useHomePageContent } from "../services/hooks/useHomePageContent.ts";
 import { useSiteSettings } from "../services/siteSettings.tsx";
+
+function isInternalPath(href: string) {
+  return href.startsWith("/") && !href.startsWith("//");
+}
 
 export function HomePage() {
   const reduce = useReducedMotion();
   const { t, dir, locale } = usePreferences();
   const { heroSubtitleAr, heroSubtitleEn } = useSiteSettings();
+  const home = useHomePageContent();
   const Arrow = dir === "rtl" ? ArrowLeft : ArrowRight;
   usePageTitle(t("brandName"));
 
+  const heroTitle = home.heroTitle || t("heroTitle");
   const heroLead =
-    (locale === "en" ? heroSubtitleEn : heroSubtitleAr)?.trim?.() || t("heroLead");
+    home.heroSubtitle ||
+    (locale === "en" ? heroSubtitleEn : heroSubtitleAr)?.trim?.() ||
+    t("heroLead");
+  const aboutText = home.aboutText;
+  const ctaText = home.heroCtaText;
+  const ctaUrl = home.heroCtaUrl;
 
   const gateways = [
     { to: "/grades", key: "ctaGrades", icon: Layers, text: t("grades") },
@@ -41,20 +55,40 @@ export function HomePage() {
               </p>
               <div className="max-w-2xl">
                 <h1 className="text-3xl font-extrabold leading-[1.12] text-white md:text-5xl lg:text-6xl">
-                  <span className="text-gradient">{t("heroTitle")}</span>
+                  <span className="text-gradient">{heroTitle}</span>
                 </h1>
                 <p className="mt-4 max-w-xl text-sm leading-7 text-soft sm:mt-5 sm:text-base sm:leading-8 md:text-lg">
                   {heroLead}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2.5">
-                <Link
-                  to="/grades"
-                  className="brand-gradient inline-flex min-h-11 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-[0_14px_40px_-16px_rgba(16,185,129,1)]"
-                >
-                  {t("ctaGrades")}
-                  <Arrow className="size-4" />
-                </Link>
+                {ctaText && ctaUrl ? (
+                  isInternalPath(ctaUrl) ? (
+                    <Link
+                      to={ctaUrl}
+                      className="brand-gradient inline-flex min-h-11 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-[0_14px_40px_-16px_rgba(16,185,129,1)]"
+                    >
+                      {ctaText}
+                      <Arrow className="size-4" />
+                    </Link>
+                  ) : (
+                    <ExternalAnchor
+                      href={ctaUrl}
+                      className="brand-gradient inline-flex min-h-11 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-[0_14px_40px_-16px_rgba(16,185,129,1)]"
+                    >
+                      {ctaText}
+                      <Arrow className="size-4" />
+                    </ExternalAnchor>
+                  )
+                ) : (
+                  <Link
+                    to="/grades"
+                    className="brand-gradient inline-flex min-h-11 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-[0_14px_40px_-16px_rgba(16,185,129,1)]"
+                  >
+                    {t("ctaGrades")}
+                    <Arrow className="size-4" />
+                  </Link>
+                )}
                 <Link
                   to="/library"
                   className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/25 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/15"
@@ -81,20 +115,32 @@ export function HomePage() {
           <div className="grid gap-8 p-6 sm:gap-10 sm:p-8 lg:grid-cols-12 lg:items-end lg:p-10">
             <div className="lg:col-span-5">
               <p className="font-display text-[11px] tracking-[0.22em] text-emerald">{t("mission")}</p>
-              <h2 className="mt-4 text-2xl font-bold leading-snug text-white sm:text-3xl md:text-4xl">{t("missionHeading")}</h2>
+              <h2 className="mt-4 text-2xl font-bold leading-snug text-white sm:text-3xl md:text-4xl">
+                {t("missionHeading")}
+              </h2>
             </div>
             <div className="space-y-4 text-sm leading-7 text-soft sm:text-base sm:leading-8 lg:col-span-6 lg:col-start-7">
-              <p>{t("missionP1")}</p>
-              <p>{t("missionP2")}</p>
+              {aboutText ? (
+                <p className="whitespace-pre-line">{aboutText}</p>
+              ) : (
+                <>
+                  <p>{t("missionP1")}</p>
+                  <p>{t("missionP2")}</p>
+                </>
+              )}
             </div>
           </div>
         </section>
       </Shell>
 
+      <BooksSection books={home.books} ready={home.ready} />
+
       <Shell className="mt-10 sm:mt-14 pb-4">
         <div className="mb-6 max-w-2xl">
           <p className="text-sm text-teal">{t("gatewaysTitle")}</p>
-          <h2 className="mt-2 text-2xl font-bold text-slate-900 sm:text-3xl dark:text-white">{t("gatewaysLead")}</h2>
+          <h2 className="mt-2 text-2xl font-bold text-slate-900 sm:text-3xl dark:text-white">
+            {t("gatewaysLead")}
+          </h2>
         </div>
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {gateways.map((item, index) => (
