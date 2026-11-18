@@ -213,32 +213,16 @@ function cleanEnvValue(value: string | undefined) {
 
 function mergeHeaders(init?: HeadersInit): Headers {
   const headers = new Headers(init);
+  // Do NOT append unknown query params — PostgREST treats them as column filters.
   headers.set("Cache-Control", "no-cache, no-store, must-revalidate");
   headers.set("Pragma", "no-cache");
   headers.set("Expires", "0");
   return headers;
 }
 
-/** Always-fresh fetch for Supabase REST — busts browser/CDN GET caches. */
+/** Always-fresh fetch for Supabase REST (`cache: 'no-store'` + no-cache headers). */
 export function supabaseLiveFetch(input: RequestInfo | URL, init?: RequestInit) {
-  const rawUrl =
-    typeof input === "string"
-      ? input
-      : input instanceof URL
-        ? input.toString()
-        : input.url;
-
-  let nextUrl = rawUrl;
-  try {
-    const parsed = new URL(rawUrl);
-    parsed.searchParams.set("_ts", String(Date.now()));
-    nextUrl = parsed.toString();
-  } catch {
-    const joiner = rawUrl.includes("?") ? "&" : "?";
-    nextUrl = `${rawUrl}${joiner}_ts=${Date.now()}`;
-  }
-
-  return fetch(nextUrl, {
+  return fetch(input, {
     ...init,
     cache: "no-store",
     headers: mergeHeaders(init?.headers),
@@ -490,13 +474,14 @@ export async function fetchActiveClassSchedules(): Promise<DbClassSchedule[] | n
   return null;
 }
 
+/** Active social channels only — live uncached query via supabaseLiveFetch. */
 async function fetchSocialLinksTable(): Promise<DbSocialLink[] | null> {
   if (!supabase) return null;
   try {
-    // Live query — global fetch uses cache: 'no-store' + cache-busting `_ts`.
     const { data, error } = await supabase
       .from("social_links")
       .select("*")
+      .eq("is_active", true)
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true });
 
@@ -505,7 +490,7 @@ async function fetchSocialLinksTable(): Promise<DbSocialLink[] | null> {
       console.warn("[tariq] social_links table:", error.message, error);
       return null;
     }
-    return (data as DbSocialLink[] | null) ?? [];
+    return ((data as DbSocialLink[] | null) ?? []).filter(isRowActive);
   } catch (err) {
     console.error("[tariq] social_links exception:", err);
     return null;
@@ -545,44 +530,45 @@ function normalizeSettingsRow(row: Record<string, unknown>): DbSiteSettings {
 }
 
 /**
- * Loads site_settings (id=1) and prefers public.social_links rows over
- * legacy site_settings.social_links jsonb.
- * Always uncached (cache: 'no-store' + `_ts` bust via supabaseLiveFetch).
+ * Loads site_settings row id = 1 and active public.social_links rows.
+ * Always uncached via supabaseLiveFetch (`cache: 'no-store'`).
  */
 export async function fetchSiteSettings(): Promise<DbSiteSettings | null> {
   if (!supabase) return null;
 
   try {
-    let row: Record<string, unknown> | null = null;
+    const [settingsResult, links] = await Promise.all([
+      supabase.from("site_settings").select("*").eq("id", 1).maybeSingle(),
+      fetchSocialLinksTable(),
+    ]);
 
-    const byId = await supabase.from("site_settings").select("*").eq("id", 1).maybeSingle();
-
-    if (byId.error) {
-      console.error("[tariq] site_settings by id:", byId.error.message, byId.error);
-    } else if (byId.data) {
-      row = byId.data as Record<string, unknown>;
+    if (settingsResult.error) {
+      console.error(
+        "[tariq] site_settings id=1:",
+        settingsResult.error.message,
+        settingsResult.error,
+      );
+      return null;
     }
 
-    if (!row) {
-      const fallback = await supabase
-        .from("site_settings")
-        .select("*")
-        .order("id", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      if (fallback.error) {
-        console.error("[tariq] site_settings fallback:", fallback.error.message, fallback.error);
-        return null;
-      }
-      row = (fallback.data as Record<string, unknown> | null) ?? null;
+    if (!settingsResult.data) {
+      console.warn("[tariq] site_settings: no row with id=1");
+      return null;
     }
 
-    if (!row) return null;
+    const settings = normalizeSettingsRow(
+      settingsResult.data as Record<string, unknown>,
+    );
 
-    const settings = normalizeSettingsRow(row);
-    const tableLinks = await fetchSocialLinksTable();
-    if (tableLinks !== null) {
-      settings.social_links = tableLinks;
+    // Prefer dedicated social_links table (active rows only).
+    if (links !== null) {
+      settings.social_links = links;
+    } else {
+      // jsonb fallback — keep only active / visible entries
+      settings.social_links = (settings.social_links ?? []).filter((link) => {
+        if (typeof link === "string") return true;
+        return link.is_active !== false && link.is_visible !== false;
+      });
     }
 
     return settings;
