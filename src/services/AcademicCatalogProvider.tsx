@@ -73,10 +73,19 @@ export function AcademicCatalogProvider({ children }: { children: ReactNode }) {
   const hydrate = useCallback(async () => {
     try {
       const next = await fetchAcademicBundle();
+      console.info("[tariq] AcademicCatalogProvider hydrate:", {
+        source: next.source,
+        stages: next.stages.length,
+        grades: next.grades.length,
+        materials: next.materials.length,
+        playlists: next.playlists.length,
+        configured: isSupabaseConfigured,
+      });
       if (next.source === "supabase" || next.stages.length || next.materials.length || next.playlists.length) {
         setBundle(next);
         hasLive.current = true;
       } else if (!hasLive.current) {
+        console.warn("[tariq] AcademicCatalogProvider: empty bundle — showing empty states");
         setBundle(EMPTY);
       }
     } catch (err) {
@@ -148,8 +157,17 @@ export function AcademicCatalogProvider({ children }: { children: ReactNode }) {
         stageId ? grades.filter((g) => g.stageId === stageId) : [],
       unitsByGrade: (gradeId) =>
         gradeId ? units.filter((u) => u.gradeId === gradeId) : [],
-      materialsByGrade: (gradeId) =>
-        gradeId ? materials.filter((m) => m.gradeId === gradeId) : [],
+      materialsByGrade: (gradeId) => {
+        if (!gradeId) return [];
+        const matched = materials.filter((m) => String(m.gradeId) === String(gradeId));
+        if (matched.length === 0 && materials.length > 0) {
+          console.warn("[tariq] materialsByGrade: no matches for", gradeId, {
+            availableGradeIds: [...new Set(materials.map((m) => m.gradeId))],
+            totalMaterials: materials.length,
+          });
+        }
+        return matched;
+      },
       materialsByUnit: (unitIdOrName) =>
         unitIdOrName ? materials.filter((m) => matchesUnit(m, unitIdOrName)) : [],
       playlistsByGrade: (gradeId) =>

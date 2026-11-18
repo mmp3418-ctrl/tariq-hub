@@ -229,7 +229,7 @@ export function supabaseLiveFetch(input: RequestInfo | URL, init?: RequestInit) 
   });
 }
 
-const supabaseUrl =
+export const supabaseUrl =
   cleanEnvValue(env.NEXT_PUBLIC_SUPABASE_URL || env.VITE_SUPABASE_URL) ||
   SUPABASE_URL_FALLBACK;
 const supabaseAnonKey =
