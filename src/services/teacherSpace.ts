@@ -7,6 +7,9 @@ export type TeacherTimetableView = {
   fileUrl: string;
   stageId: string;
   gradeId: string;
+  /** Weekly grid: day → period subjects (for on-page render) */
+  gridData: Record<string, string[]> | null;
+  periodCount: number;
 };
 
 export type TeacherTutorialView = {
@@ -129,14 +132,34 @@ export async function fetchTeacherSpaceBundle(): Promise<TeacherSpaceBundle> {
 
   const timetables: TeacherTimetableView[] = timetablesRaw
     .filter(active)
-    .map((row) => ({
-      id: String(row.id),
-      title: String(row.title ?? "").trim() || "جدول حصص",
-      fileUrl: mediaUrl(row.file_url as string),
-      stageId: row.stage_id ? String(row.stage_id) : "",
-      gradeId: row.grade_id ? String(row.grade_id) : "",
-    }))
-    .filter((item) => Boolean(item.fileUrl));
+    .map((row) => {
+      const rawGrid = row.grid_data;
+      let gridData: Record<string, string[]> | null = null;
+      if (rawGrid && typeof rawGrid === "object" && !Array.isArray(rawGrid)) {
+        const out: Record<string, string[]> = {};
+        for (const [day, periods] of Object.entries(
+          rawGrid as Record<string, unknown>,
+        )) {
+          if (!Array.isArray(periods)) continue;
+          out[day] = periods.map((cell) => String(cell ?? ""));
+        }
+        if (Object.keys(out).length) gridData = out;
+      }
+      return {
+        id: String(row.id),
+        title: String(row.title ?? "").trim() || "جدول حصص",
+        fileUrl: mediaUrl(row.file_url as string),
+        stageId: row.stage_id ? String(row.stage_id) : "",
+        gradeId: row.grade_id ? String(row.grade_id) : "",
+        gridData,
+        periodCount: Math.min(
+          10,
+          Math.max(3, Number(row.period_count ?? 6) || 6),
+        ),
+      };
+    })
+    // Active only (already filtered); hide rows with neither PDF nor grid
+    .filter((item) => Boolean(item.fileUrl) || Boolean(item.gridData));
 
   const tutorials: TeacherTutorialView[] = tutorialsRaw
     .filter(active)

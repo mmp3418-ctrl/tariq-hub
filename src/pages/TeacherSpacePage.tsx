@@ -25,7 +25,68 @@ import {
   useTeacherSpace,
   type TeacherSpaceSection,
 } from "../services/TeacherSpaceProvider.tsx";
-import type { QuestionBankView } from "../services/teacherSpace.ts";
+import type {
+  QuestionBankView,
+  TeacherTimetableView,
+} from "../services/teacherSpace.ts";
+
+const TIMETABLE_DAY_ORDER = [
+  "الأحد",
+  "الاثنين",
+  "الثلاثاء",
+  "الأربعاء",
+  "الخميس",
+] as const;
+
+function TimetableGridPreview({ item }: { item: TeacherTimetableView }) {
+  if (!item.gridData) return null;
+  const days = TIMETABLE_DAY_ORDER.filter((d) => item.gridData![d]);
+  const extra = Object.keys(item.gridData).filter(
+    (d) => !TIMETABLE_DAY_ORDER.includes(d as (typeof TIMETABLE_DAY_ORDER)[number]),
+  );
+  const ordered = [...days, ...extra];
+  if (!ordered.length) return null;
+  const periods = item.periodCount || 6;
+
+  return (
+    <div className="-mx-1 overflow-x-auto px-1">
+      <table className="min-w-[480px] w-full border-collapse text-[11px] sm:text-xs">
+        <thead>
+          <tr>
+            <th className="border border-white/10 bg-emerald-500/15 px-2 py-1.5 text-emerald-200">
+              اليوم
+            </th>
+            {Array.from({ length: periods }, (_, i) => (
+              <th
+                key={i}
+                className="border border-white/10 bg-emerald-500/15 px-2 py-1.5 text-emerald-200"
+              >
+                {i + 1}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {ordered.map((day) => (
+            <tr key={day}>
+              <th className="border border-white/10 bg-white/[0.04] px-2 py-1.5 text-fg">
+                {day}
+              </th>
+              {Array.from({ length: periods }, (_, i) => (
+                <td
+                  key={i}
+                  className="border border-white/10 px-1.5 py-1.5 text-center text-muted"
+                >
+                  {(item.gridData?.[day]?.[i] || "").trim() || "—"}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 function parseSection(value: string | null): TeacherSpaceSection {
   if (
@@ -234,39 +295,59 @@ export function TeacherSpacePage() {
               tone="soft"
             />
           ) : (
-            <ul className="grid gap-3 sm:grid-cols-2">
+            <ul className="grid gap-4">
               {filteredTimetables.map((item) => (
                 <li key={item.id}>
-                  <article className="glass flex h-full flex-col gap-3 overflow-hidden rounded-2xl p-4 sm:p-5">
-                    <div className="flex aspect-[16/9] items-center justify-center rounded-xl bg-gradient-to-br from-slate-900 via-[#0F172A] to-emerald-950/70">
-                      <span className="inline-flex size-14 items-center justify-center rounded-2xl bg-emerald-500/15 ring-1 ring-emerald-400/30">
-                        <CalendarDays className="size-7 text-emerald-400" aria-hidden />
+                  <article className="glass flex h-full flex-col gap-4 overflow-hidden rounded-2xl p-4 sm:p-5">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs text-teal">
+                          {[stageName(item.stageId), gradeName(item.gradeId)]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </p>
+                        <h3 className="mt-1 text-lg font-bold text-fg">
+                          {item.title}
+                        </h3>
+                      </div>
+                      <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 ring-1 ring-emerald-400/30">
+                        <CalendarDays
+                          className="size-5 text-emerald-400"
+                          aria-hidden
+                        />
                       </span>
                     </div>
-                    <p className="text-xs text-teal">
-                      {[stageName(item.stageId), gradeName(item.gradeId)]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </p>
-                    <h3 className="text-base font-bold text-fg">{item.title}</h3>
+
+                    {item.gridData ? (
+                      <TimetableGridPreview item={item} />
+                    ) : (
+                      <div className="flex aspect-[21/9] items-center justify-center rounded-xl bg-gradient-to-br from-slate-900 via-[#0F172A] to-emerald-950/70">
+                        <span className="text-sm text-muted">جدول حصص PDF</span>
+                      </div>
+                    )}
+
                     <div className="mt-auto flex flex-wrap gap-3 pt-1 text-sm font-semibold">
-                      <ExternalAnchor
-                        href={item.fileUrl}
-                        kind="pdf"
-                        className="inline-flex items-center gap-1.5 text-teal"
-                      >
-                        <Eye className="size-4" />
-                        {t("quickPreview")}
-                      </ExternalAnchor>
-                      <ExternalAnchor
-                        href={item.fileUrl}
-                        kind="pdf"
-                        download={`${item.title || "timetable"}.pdf`}
-                        className="inline-flex items-center gap-1.5 text-fg"
-                      >
-                        <Download className="size-4" />
-                        {t("downloadDirect")}
-                      </ExternalAnchor>
+                      {item.fileUrl ? (
+                        <>
+                          <ExternalAnchor
+                            href={item.fileUrl}
+                            kind="pdf"
+                            className="inline-flex items-center gap-1.5 text-teal"
+                          >
+                            <Eye className="size-4" />
+                            {t("quickPreview")}
+                          </ExternalAnchor>
+                          <ExternalAnchor
+                            href={item.fileUrl}
+                            kind="pdf"
+                            download={`${item.title || "timetable"}.pdf`}
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-500/15 px-3 py-2 text-emerald-200 ring-1 ring-emerald-400/25"
+                          >
+                            <Download className="size-4" />
+                            {t("downloadTimetablePdf")}
+                          </ExternalAnchor>
+                        </>
+                      ) : null}
                     </div>
                   </article>
                 </li>
