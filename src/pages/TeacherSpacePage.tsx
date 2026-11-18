@@ -237,7 +237,12 @@ export function TeacherSpacePage() {
             <ul className="grid gap-3 sm:grid-cols-2">
               {filteredTimetables.map((item) => (
                 <li key={item.id}>
-                  <article className="glass flex h-full flex-col gap-3 rounded-2xl p-4 sm:p-5">
+                  <article className="glass flex h-full flex-col gap-3 overflow-hidden rounded-2xl p-4 sm:p-5">
+                    <div className="flex aspect-[16/9] items-center justify-center rounded-xl bg-gradient-to-br from-slate-900 via-[#0F172A] to-emerald-950/70">
+                      <span className="inline-flex size-14 items-center justify-center rounded-2xl bg-emerald-500/15 ring-1 ring-emerald-400/30">
+                        <CalendarDays className="size-7 text-emerald-400" aria-hidden />
+                      </span>
+                    </div>
                     <p className="text-xs text-teal">
                       {[stageName(item.stageId), gradeName(item.gradeId)]
                         .filter(Boolean)
