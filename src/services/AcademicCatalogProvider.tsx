@@ -170,12 +170,21 @@ export function AcademicCatalogProvider({ children }: { children: ReactNode }) {
       },
       materialsByUnit: (unitIdOrName) =>
         unitIdOrName ? materials.filter((m) => matchesUnit(m, unitIdOrName)) : [],
-      playlistsByGrade: (gradeId) =>
-        gradeId ? playlists.filter((p) => p.gradeId === gradeId) : [],
+      playlistsByGrade: (gradeId) => {
+        if (!gradeId) return [];
+        const matched = playlists.filter((p) => String(p.gradeId) === String(gradeId));
+        if (matched.length === 0 && playlists.length > 0) {
+          console.warn("[tariq] playlistsByGrade: no matches for", gradeId, {
+            availableGradeIds: [...new Set(playlists.map((p) => p.gradeId))],
+            totalPlaylists: playlists.length,
+          });
+        }
+        return matched;
+      },
       playlistsByUnit: (unitIdOrName) =>
         unitIdOrName ? playlists.filter((p) => matchesUnit(p, unitIdOrName)) : [],
       playlistsByStage: (stageId) =>
-        stageId ? playlists.filter((p) => p.stageId === stageId) : [],
+        stageId ? playlists.filter((p) => String(p.stageId) === String(stageId)) : [],
       refresh: hydrate,
     };
   }, [bundle, hydrate, ready]);

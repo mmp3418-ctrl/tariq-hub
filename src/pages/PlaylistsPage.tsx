@@ -54,8 +54,22 @@ export function PlaylistsPage() {
 
   const grouped = useMemo(() => {
     if (unitId) {
-      const items = playlistsByUnit(unitId);
+      let items = playlistsByUnit(unitId);
       const unit = units.find((u) => u.id === unitId);
+      if (items.length === 0 && gradeId) {
+        const gradeItems = playlistsByGrade(gradeId);
+        items = gradeItems.filter(
+          (p) => !unit || p.unitName === unit.name || p.unitId === unit.id,
+        );
+        if (items.length === 0) {
+          console.warn("[tariq] PlaylistsPage: unit filter empty, falling back to grade", {
+            unitId,
+            gradeId,
+            gradeCount: gradeItems.length,
+          });
+          items = gradeItems;
+        }
+      }
       return [{ key: unitId, title: unit?.name || t("playlistsUnitScope"), items }];
     }
 

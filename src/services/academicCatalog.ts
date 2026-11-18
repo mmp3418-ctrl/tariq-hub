@@ -47,6 +47,8 @@ export type DbEducationalMaterial = {
 export type DbVideoPlaylist = {
   id: string;
   title?: string | null;
+  /** Canonical column written by tariq-admin */
+  playlist_url?: string | null;
   youtube_url?: string | null;
   material_type?: string | null;
   stage_id?: string | null;
@@ -108,7 +110,7 @@ export type PlaylistView = {
 };
 
 function activeRow(row: { is_active?: boolean | null }) {
-  // Admin treats null/undefined as active; public query already uses is_active = true.
+  // Match admin: null/undefined count as active.
   return row.is_active !== false;
 }
 
@@ -120,7 +122,6 @@ function storagePublicUrl(objectPath: string) {
       return `${supabaseUrl}/storage/v1/object/public/${path}`;
     }
   }
-  // Bare object key → prefer primary materials bucket.
   if (supabase) {
     const { data } = supabase.storage.from(MATERIALS_BUCKETS[0]).getPublicUrl(path);
     if (data?.publicUrl) return data.publicUrl;
@@ -136,11 +137,107 @@ function resolvePdfUrl(row: DbEducationalMaterial) {
   const media = normalizeMediaHref(raw) || normalizeExternalHref(raw);
   if (media) return media;
 
-  // Relative storage object path saved without a full URL.
   if (!/^https?:\/\//i.test(raw) && !raw.startsWith("/") && raw.includes(".")) {
     return storagePublicUrl(raw);
   }
   return "";
+}
+
+/** Resolve playlist from playlist_url (canonical), then legacy youtube_url. */
+function resolvePlaylistUrl(row: DbVideoPlaylist) {
+  const raw = String(row.playlist_url ?? row.youtube_url ?? "").trim();
+  if (!raw) return "";
+  return normalizeExternalHref(raw);
+}
+
+function sampleRowKeys(row: Record<string, unknown> | null | undefined) {
+  if (!row) return [];
+  return Object.keys(row);
+}
+
+/**
+ * Fetch active rows with resilient fallbacks when schema columns differ.
+ * Always prefers `is_active = true`, then softens only if the column is missing
+ * or the active filter returns nothing while inactive-inclusive rows exist.
+ */
+async function fetchActiveTableRows<T extends { is_active?: boolean | null }>(
+  table: string,
+): Promise<T[] | null> {
+  if (!supabase || !isSupabaseConfigured) {
+    console.warn(`[tariq] ${table}: Supabase not configured`);
+    return null;
+  }
+
+  const primary = await supabase
+    .from(table)
+    .select("*")
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: false });
+
+  if (!primary.error) {
+    let rows = (primary.data as T[] | null) ?? [];
+    console.info(`[tariq] ${table}: fetched`, rows.length, "active row(s)");
+
+    // Diagnostic: if zero active, check whether inactive-inclusive rows exist.
+    if (rows.length === 0) {
+      const all = await supabase.from(table).select("*");
+      if (!all.error) {
+        const every = (all.data as T[] | null) ?? [];
+        const soft = every.filter(activeRow);
+        console.warn(`[tariq] ${table}: 0 with is_active=true; total=${every.length}, soft-active=${soft.length}`, {
+          sampleKeys: sampleRowKeys(every[0] as Record<string, unknown> | undefined),
+          sample: every[0]
+            ? {
+                id: (every[0] as { id?: string }).id,
+                is_active: every[0].is_active,
+                title: (every[0] as { title?: string }).title,
+              }
+            : null,
+        });
+        if (soft.length > 0) {
+          console.warn(`[tariq] ${table}: using soft-active fallback (${soft.length})`);
+          rows = soft;
+        }
+      }
+    } else {
+      console.info(`[tariq] ${table}: sample keys`, sampleRowKeys(rows[0] as Record<string, unknown>));
+    }
+    return rows;
+  }
+
+  console.error(`[tariq] ${table} primary query:`, primary.error.message, primary.error);
+
+  if (/created_at|sort_order/i.test(primary.error.message)) {
+    const fallback = await supabase.from(table).select("*").eq("is_active", true);
+    if (!fallback.error) {
+      const rows = (fallback.data as T[] | null) ?? [];
+      console.info(`[tariq] ${table}: order-fallback fetched`, rows.length);
+      return rows;
+    }
+    console.error(`[tariq] ${table} order-fallback:`, fallback.error.message, fallback.error);
+  }
+
+  if (/is_active/i.test(primary.error.message)) {
+    const legacy = await supabase.from(table).select("*");
+    if (!legacy.error) {
+      const rows = ((legacy.data as T[] | null) ?? []).filter(activeRow);
+      console.warn(`[tariq] ${table}: legacy fetch without is_active →`, rows.length);
+      return rows;
+    }
+    console.error(`[tariq] ${table} legacy:`, legacy.error.message, legacy.error);
+  }
+
+  // Absolute last resort
+  const bare = await supabase.from(table).select("*");
+  if (!bare.error) {
+    const rows = ((bare.data as T[] | null) ?? []).filter(activeRow);
+    console.warn(`[tariq] ${table}: bare select →`, rows.length);
+    return rows;
+  }
+
+  console.error(`[tariq] ${table} bare select failed:`, bare.error.message, bare.error);
+  return null;
 }
 
 async function safeSelect<T>(
@@ -195,71 +292,11 @@ export async function fetchActiveAcademicUnits(): Promise<DbAcademicUnit[] | nul
 }
 
 export async function fetchActiveEducationalMaterials(): Promise<DbEducationalMaterial[] | null> {
-  if (!supabase || !isSupabaseConfigured) {
-    console.warn("[tariq] educational_materials: Supabase not configured");
-    return null;
-  }
-
-  const primary = await supabase
-    .from("educational_materials")
-    .select("*")
-    .eq("is_active", true)
-    .order("sort_order", { ascending: true })
-    .order("created_at", { ascending: false });
-
-  if (!primary.error) {
-    const rows = (primary.data as DbEducationalMaterial[] | null) ?? [];
-    console.info("[tariq] educational_materials: fetched", rows.length, "active row(s)");
-    return rows;
-  }
-
-  console.error("[tariq] educational_materials primary query:", primary.error.message, primary.error);
-
-  // Fallback: drop created_at order (column may be missing on older schemas).
-  if (/created_at|sort_order/i.test(primary.error.message)) {
-    const fallback = await supabase
-      .from("educational_materials")
-      .select("*")
-      .eq("is_active", true);
-    if (!fallback.error) {
-      const rows = (fallback.data as DbEducationalMaterial[] | null) ?? [];
-      console.info(
-        "[tariq] educational_materials: fallback fetched",
-        rows.length,
-        "active row(s)",
-      );
-      return rows;
-    }
-    console.error("[tariq] educational_materials fallback:", fallback.error.message, fallback.error);
-  }
-
-  // Last resort: no is_active filter (column missing) — client still filters.
-  if (/is_active/i.test(primary.error.message)) {
-    const legacy = await supabase.from("educational_materials").select("*");
-    if (!legacy.error) {
-      const rows = ((legacy.data as DbEducationalMaterial[] | null) ?? []).filter(activeRow);
-      console.warn(
-        "[tariq] educational_materials: legacy fetch without is_active filter →",
-        rows.length,
-        "row(s)",
-      );
-      return rows;
-    }
-    console.error("[tariq] educational_materials legacy:", legacy.error.message, legacy.error);
-  }
-
-  return null;
+  return fetchActiveTableRows<DbEducationalMaterial>("educational_materials");
 }
 
 export async function fetchActiveVideoPlaylists(): Promise<DbVideoPlaylist[] | null> {
-  return safeSelect("video_playlists", () =>
-    supabase!
-      .from("video_playlists")
-      .select("*")
-      .eq("is_active", true)
-      .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: false }),
-  );
+  return fetchActiveTableRows<DbVideoPlaylist>("video_playlists");
 }
 
 export type AcademicBundle = {
@@ -273,6 +310,7 @@ export type AcademicBundle = {
 
 export async function fetchAcademicBundle(): Promise<AcademicBundle> {
   if (!isSupabaseConfigured || !supabase) {
+    console.warn("[tariq] fetchAcademicBundle: Supabase not configured");
     return { stages: [], grades: [], units: [], materials: [], playlists: [], source: "mock" };
   }
 
@@ -283,6 +321,14 @@ export async function fetchAcademicBundle(): Promise<AcademicBundle> {
     fetchActiveEducationalMaterials(),
     fetchActiveVideoPlaylists(),
   ]);
+
+  console.info("[tariq] fetchAcademicBundle raw counts:", {
+    stages: stagesRaw?.length ?? null,
+    grades: gradesRaw?.length ?? null,
+    units: unitsRaw?.length ?? null,
+    materials: materialsRaw?.length ?? null,
+    playlists: playlistsRaw?.length ?? null,
+  });
 
   const stages = (stagesRaw ?? [])
     .filter(activeRow)
@@ -323,6 +369,7 @@ export async function fetchAcademicBundle(): Promise<AcademicBundle> {
   const gradeName = new Map(grades.map((g) => [g.id, g.name]));
   const unitNameById = new Map(units.map((u) => [u.id, u.name]));
 
+  // —— Materials (file_url / file_path / pdf_url) ——
   const materialsMapped = (materialsRaw ?? []).filter(activeRow).map((row) => {
     const type = normalizeMaterialType(row.material_type);
     const pdfUrl = resolvePdfUrl(row);
@@ -343,16 +390,15 @@ export async function fetchAcademicBundle(): Promise<AcademicBundle> {
       unitName: typedUnit || (unitId ? unitNameById.get(unitId) || "" : ""),
       stageName: stageId ? stageName.get(stageId) || "" : "",
       gradeName: gradeId ? gradeName.get(gradeId) || "" : "",
-      _rawFile:
-        String(row.file_url ?? row.file_path ?? row.pdf_url ?? "").trim() || null,
+      _rawFile: String(row.file_url ?? row.file_path ?? row.pdf_url ?? "").trim() || null,
     };
   });
 
-  const droppedNoUrl = materialsMapped.filter((item) => !item.pdfUrl);
-  if (droppedNoUrl.length > 0) {
+  const droppedMaterials = materialsMapped.filter((item) => !item.pdfUrl);
+  if (droppedMaterials.length > 0) {
     console.warn(
-      "[tariq] educational_materials: dropped (missing resolvable PDF URL):",
-      droppedNoUrl.map((m) => ({ id: m.id, title: m.title, raw: m._rawFile })),
+      "[tariq] educational_materials: dropped (no resolvable file_url/file_path/pdf_url):",
+      droppedMaterials.map((m) => ({ id: m.id, title: m.title, raw: m._rawFile, gradeId: m.gradeId })),
     );
   }
 
@@ -360,9 +406,9 @@ export async function fetchAcademicBundle(): Promise<AcademicBundle> {
     .filter((item) => Boolean(item.pdfUrl))
     .map(({ _rawFile: _ignored, ...item }) => item);
 
-  console.info("[tariq] educational_materials: renderable", {
+  console.info("[tariq] educational_materials renderable:", {
     raw: materialsRaw?.length ?? 0,
-    active: materialsMapped.length,
+    mapped: materialsMapped.length,
     withUrl: materials.length,
     byGrade: materials.reduce<Record<string, number>>((acc, m) => {
       const key = m.gradeId || "(none)";
@@ -371,45 +417,77 @@ export async function fetchAcademicBundle(): Promise<AcademicBundle> {
     }, {}),
   });
 
-  // Merge typed unit names from materials into the units list for grade browsing.
+  // Typed units from materials + playlists (manual unit_name)
   const typedUnits: AcademicUnitView[] = [];
   const seenTyped = new Set(units.map((u) => `${u.gradeId}::${u.name}`));
-  for (const material of materials) {
-    if (!material.gradeId || !material.unitName) continue;
-    const key = `${material.gradeId}::${material.unitName}`;
-    if (seenTyped.has(key)) continue;
+  const rememberTyped = (gradeId: string, unitName: string) => {
+    if (!gradeId || !unitName) return;
+    const key = `${gradeId}::${unitName}`;
+    if (seenTyped.has(key)) return;
     seenTyped.add(key);
     typedUnits.push({
-      id: `typed:${material.gradeId}:${encodeURIComponent(material.unitName)}`,
-      gradeId: material.gradeId,
-      name: material.unitName,
+      id: `typed:${gradeId}:${encodeURIComponent(unitName)}`,
+      gradeId,
+      name: unitName,
       sortOrder: 10_000 + typedUnits.length,
     });
+  };
+
+  for (const material of materials) {
+    rememberTyped(material.gradeId, material.unitName);
   }
 
-  const playlists: PlaylistView[] = (playlistsRaw ?? [])
-    .filter(activeRow)
-    .map((row) => {
-      const youtubeUrl = normalizeExternalHref(row.youtube_url || "");
-      const unitId = row.unit_id ? String(row.unit_id) : "";
-      const typedUnit = (row.unit_name || "").trim();
-      const type = row.material_type ? normalizeMaterialType(row.material_type) : "";
-      return {
-        id: String(row.id),
-        title: (row.title || "").trim() || "شرح",
-        youtubeUrl,
-        materialType: type,
-        badgeAr: type ? materialTypeBadge(type, "ar") : "يوتيوب",
-        badgeEn: type ? materialTypeBadge(type, "en") : "YouTube",
-        stageId: row.stage_id ? String(row.stage_id) : "",
-        gradeId: row.grade_id ? String(row.grade_id) : "",
-        unitId,
-        unitName: typedUnit || (unitId ? unitNameById.get(unitId) || "" : ""),
-        stageName: row.stage_id ? stageName.get(String(row.stage_id)) || "" : "",
-        gradeName: row.grade_id ? gradeName.get(String(row.grade_id)) || "" : "",
-      };
-    })
-    .filter((item) => Boolean(item.youtubeUrl));
+  // —— Playlists (playlist_url / youtube_url) ——
+  const playlistsMapped = (playlistsRaw ?? []).filter(activeRow).map((row) => {
+    const youtubeUrl = resolvePlaylistUrl(row);
+    const unitId = row.unit_id ? String(row.unit_id) : "";
+    const typedUnit = (row.unit_name || "").trim();
+    const type = row.material_type ? normalizeMaterialType(row.material_type) : "";
+    const stageId = row.stage_id ? String(row.stage_id) : "";
+    const gradeId = row.grade_id ? String(row.grade_id) : "";
+    return {
+      id: String(row.id),
+      title: (row.title || "").trim() || "شرح",
+      youtubeUrl,
+      materialType: type,
+      badgeAr: type ? materialTypeBadge(type, "ar") : "يوتيوب",
+      badgeEn: type ? materialTypeBadge(type, "en") : "YouTube",
+      stageId,
+      gradeId,
+      unitId,
+      unitName: typedUnit || (unitId ? unitNameById.get(unitId) || "" : ""),
+      stageName: stageId ? stageName.get(stageId) || "" : "",
+      gradeName: gradeId ? gradeName.get(gradeId) || "" : "",
+      _rawUrl: String(row.playlist_url ?? row.youtube_url ?? "").trim() || null,
+    };
+  });
+
+  const droppedPlaylists = playlistsMapped.filter((item) => !item.youtubeUrl);
+  if (droppedPlaylists.length > 0) {
+    console.warn(
+      "[tariq] video_playlists: dropped (no resolvable playlist_url/youtube_url):",
+      droppedPlaylists.map((p) => ({ id: p.id, title: p.title, raw: p._rawUrl, gradeId: p.gradeId })),
+    );
+  }
+
+  const playlists: PlaylistView[] = playlistsMapped
+    .filter((item) => Boolean(item.youtubeUrl))
+    .map(({ _rawUrl: _ignored, ...item }) => item);
+
+  for (const playlist of playlists) {
+    rememberTyped(playlist.gradeId, playlist.unitName);
+  }
+
+  console.info("[tariq] video_playlists renderable:", {
+    raw: playlistsRaw?.length ?? 0,
+    mapped: playlistsMapped.length,
+    withUrl: playlists.length,
+    byGrade: playlists.reduce<Record<string, number>>((acc, p) => {
+      const key = p.gradeId || "(none)";
+      acc[key] = (acc[key] ?? 0) + 1;
+      return acc;
+    }, {}),
+  });
 
   const hasData =
     stages.length > 0 ||

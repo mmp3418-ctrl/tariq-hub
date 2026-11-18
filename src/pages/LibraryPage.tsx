@@ -63,7 +63,20 @@ export function LibraryPage() {
   }, [gradeId, step, units.length]);
 
   const activeMaterials = useMemo(() => {
-    if (unitId) return materialsByUnit(unitId);
+    if (unitId) {
+      const byUnit = materialsByUnit(unitId);
+      if (byUnit.length > 0) return byUnit;
+      // Fallback: unit label mismatch — still show grade materials so items aren't hidden.
+      const byGrade = gradeId ? materialsByGrade(gradeId) : [];
+      if (byGrade.length > 0) {
+        console.warn("[tariq] LibraryPage: unit filter empty, falling back to grade", {
+          unitId,
+          gradeId,
+          gradeCount: byGrade.length,
+        });
+      }
+      return byGrade;
+    }
     if (gradeId) return materialsByGrade(gradeId);
     return [];
   }, [gradeId, materialsByGrade, materialsByUnit, unitId]);
