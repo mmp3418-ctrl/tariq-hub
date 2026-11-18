@@ -7,6 +7,7 @@ import { SiteNav } from "../components/navigation/SiteNav.tsx";
 import { RouteProgress } from "../components/progress/RouteProgress.tsx";
 import { ScrollProgress } from "../components/progress/ScrollProgress.tsx";
 import { SpotlightSearch } from "../components/search/SpotlightSearch.tsx";
+import { ErrorBoundary } from "../components/ui/ErrorBoundary.tsx";
 
 export function RootLayout() {
   const location = useLocation();
@@ -45,18 +46,20 @@ export function RootLayout() {
         className="flex-1 overflow-x-hidden pb-24 outline-none md:pb-0"
         style={{ paddingTop: "var(--tariq-header-h, 5.5rem)" }}
       >
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={location.pathname}
-            initial={reduce ? false : { opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reduce ? undefined : { opacity: 0, y: -6 }}
-            transition={{ duration: reduce ? 0 : 0.28, ease: [0.22, 1, 0.36, 1] }}
-            className="overflow-x-hidden"
-          >
-            {outlet}
-          </motion.div>
-        </AnimatePresence>
+        <ErrorBoundary>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={location.pathname}
+              initial={reduce ? false : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduce ? undefined : { opacity: 0, y: -6 }}
+              transition={{ duration: reduce ? 0 : 0.28, ease: [0.22, 1, 0.36, 1] }}
+              className="overflow-x-hidden"
+            >
+              {outlet}
+            </motion.div>
+          </AnimatePresence>
+        </ErrorBoundary>
       </main>
       <SiteFooter />
       <MobileBottomNav />

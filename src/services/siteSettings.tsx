@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -56,8 +57,10 @@ const SiteSettingsContext = createContext<SiteSettings | null>(null);
 export { toMailtoHref, toTelHref, toTelegramHref, toWhatsAppHref, normalizeExternalHref };
 export { externalLinkProps, isInternalSafeScheme } from "../lib/contactLinks.ts";
 
+const EMPTY_SOCIALS: SocialLink[] = [];
+
 function platformFromUrl(url: string) {
-  const value = url.toLowerCase();
+  const value = (url ?? "").toLowerCase();
   if (value.includes("facebook")) return "facebook";
   if (value.includes("instagram")) return "instagram";
   if (value.includes("youtube") || value.includes("youtu.be")) return "youtube";
@@ -81,113 +84,164 @@ function firstNonEmpty(...values: Array<string | null | undefined>) {
   return "";
 }
 
-function normalizeSocial(entry: DbSocialLink | string, index: number): SocialLink | null {
-  if (typeof entry === "string") {
-    const href = normalizeExternalHref(entry);
+function normalizeSocial(entry: unknown, index: number): SocialLink | null {
+  try {
+    if (entry == null) return null;
+
+    if (typeof entry === "string") {
+      const href = normalizeExternalHref(entry);
+      if (!href) return null;
+      const platform = platformFromUrl(href);
+      return {
+        id: `${platform}-${index}`,
+        platform,
+        label: platform,
+        handle: href.replace(/^https?:\/\//, ""),
+        href,
+        icon: platform,
+        customIconUrl: "",
+        isVisible: true,
+      };
+    }
+
+    if (typeof entry !== "object") return null;
+    const row = entry as DbSocialLink;
+
+    const visible = row.is_visible !== false && row.is_active !== false;
+    if (!visible) return null;
+
+    const rawUrl = firstNonEmpty(row.url, row.href);
+    const platform = firstNonEmpty(
+      row.platform_name,
+      row.platform,
+      row.id,
+      platformFromUrl(rawUrl),
+      "globe",
+    ).toLowerCase();
+    const icon = firstNonEmpty(row.icon_name, row.icon, platform).toLowerCase();
+    const href = normalizeExternalHref(rawUrl, icon || platform);
     if (!href) return null;
-    const platform = platformFromUrl(href);
+
+    const label =
+      firstNonEmpty(row.platform_name, row.label, row.platform, platform) || platform;
+    const handle = firstNonEmpty(row.handle, rawUrl.replace(/^https?:\/\//, ""), label);
+
     return {
-      id: `${platform}-${index}`,
+      id: String(row.id || `${platform}-${index}`),
       platform,
-      label: platform,
-      handle: href.replace(/^https?:\/\//, ""),
+      label,
+      handle,
       href,
-      icon: platform,
-      customIconUrl: "",
+      icon,
+      customIconUrl: (row.custom_icon_url || "").trim(),
       isVisible: true,
     };
+  } catch (err) {
+    console.error("[tariq] normalizeSocial:", err, entry);
+    return null;
   }
-
-  const visible = entry.is_visible !== false && entry.is_active !== false;
-  if (!visible) return null;
-
-  const rawUrl = firstNonEmpty(entry.url, entry.href);
-  const platform = firstNonEmpty(
-    entry.platform_name,
-    entry.platform,
-    entry.id,
-    platformFromUrl(rawUrl),
-    "globe",
-  ).toLowerCase();
-  const icon = firstNonEmpty(entry.icon_name, entry.icon, platform).toLowerCase();
-  const href = normalizeExternalHref(rawUrl, icon || platform);
-  if (!href) return null;
-
-  const label =
-    firstNonEmpty(entry.platform_name, entry.label, entry.platform, platform) || platform;
-  const handle = firstNonEmpty(entry.handle, rawUrl.replace(/^https?:\/\//, ""), label);
-
-  return {
-    id: entry.id || `${platform}-${index}`,
-    platform,
-    label,
-    handle,
-    href,
-    icon,
-    customIconUrl: (entry.custom_icon_url || "").trim(),
-    isVisible: true,
-  };
 }
 
 function mapSettings(
-  row: DbSiteSettings | null,
+  row: DbSiteSettings | null | undefined,
   source: "mock" | "supabase",
 ): Omit<SiteSettings, "refresh" | "ready"> {
-  const data = row ?? defaultSiteSettings;
-  const rawLinks = Array.isArray(data.social_links) ? data.social_links : [];
-  const socialLinks = rawLinks
-    .map((entry, index) => normalizeSocial(entry as DbSocialLink | string, index))
-    .filter((entry): entry is SocialLink => Boolean(entry));
+  try {
+    const data = row ?? defaultSiteSettings;
+    const rawLinks = Array.isArray(data?.social_links) ? data.social_links : [];
+    const socialLinks = rawLinks
+      .map((entry, index) => normalizeSocial(entry, index))
+      .filter((entry): entry is SocialLink => Boolean(entry));
 
-  // Clean schema first, then legacy aliases.
-  const whatsappNumber = firstNonEmpty(data.whatsapp, data.whatsapp_number);
-  const telegramRaw = firstNonEmpty(data.telegram, data.telegram_link);
-  const phoneNumber = firstNonEmpty(data.phone_number);
+    const whatsappNumber = firstNonEmpty(data?.whatsapp, data?.whatsapp_number);
+    const telegramRaw = firstNonEmpty(data?.telegram, data?.telegram_link);
+    const phoneNumber = firstNonEmpty(data?.phone_number);
 
-  return {
-    logoUrl: (data.logo_url ?? "").trim(),
-    phoneNumber,
-    whatsappNumber,
-    telegramLink: telegramRaw ? toTelegramHref(telegramRaw) || telegramRaw : "",
-    email: firstNonEmpty(data.email, data.contact_email),
-    address: firstNonEmpty(data.location, data.location_text, data.address, data.address_text),
-    mapsUrl: normalizeExternalHref(
-      firstNonEmpty(data.google_maps_url, data.maps_url, data.location_url),
-      "maps",
-    ),
-    socialLinks,
-    heroSubtitleAr: (data.hero_subtitle_ar || defaultSiteSettings.hero_subtitle_ar || "").trim(),
-    heroSubtitleEn: (data.hero_subtitle_en || defaultSiteSettings.hero_subtitle_en || "").trim(),
-    bookYearLabel: (data.book_year_label || defaultSiteSettings.book_year_label || "2026 - 2027").trim(),
-    source,
-  };
+    return {
+      logoUrl: firstNonEmpty(data?.logo_url),
+      phoneNumber,
+      whatsappNumber,
+      telegramLink: telegramRaw ? toTelegramHref(telegramRaw) || telegramRaw : "",
+      email: firstNonEmpty(data?.email, data?.contact_email),
+      address: firstNonEmpty(
+        data?.location,
+        data?.location_text,
+        data?.address,
+        data?.address_text,
+      ),
+      mapsUrl: normalizeExternalHref(
+        firstNonEmpty(data?.google_maps_url, data?.maps_url, data?.location_url),
+        "maps",
+      ),
+      socialLinks,
+      heroSubtitleAr: firstNonEmpty(
+        data?.hero_subtitle_ar,
+        defaultSiteSettings.hero_subtitle_ar,
+      ),
+      heroSubtitleEn: firstNonEmpty(
+        data?.hero_subtitle_en,
+        defaultSiteSettings.hero_subtitle_en,
+      ),
+      bookYearLabel: firstNonEmpty(
+        data?.book_year_label,
+        defaultSiteSettings.book_year_label,
+        "2026 - 2027",
+      ),
+      source,
+    };
+  } catch (err) {
+    console.error("[tariq] mapSettings:", err);
+    return {
+      logoUrl: "",
+      phoneNumber: "",
+      whatsappNumber: "",
+      telegramLink: "",
+      email: "",
+      address: "",
+      mapsUrl: "",
+      socialLinks: EMPTY_SOCIALS,
+      heroSubtitleAr: defaultSiteSettings.hero_subtitle_ar || "",
+      heroSubtitleEn: defaultSiteSettings.hero_subtitle_en || "",
+      bookYearLabel: defaultSiteSettings.book_year_label || "2026 - 2027",
+      source,
+    };
+  }
 }
 
 export function SiteSettingsProvider({ children }: { children: ReactNode }) {
-  const [row, setRow] = useState<DbSiteSettings | null>(null);
+  // Seed defaults immediately so consumers never see undefined fields.
+  const [row, setRow] = useState<DbSiteSettings>(defaultSiteSettings);
   const [source, setSource] = useState<"mock" | "supabase">("mock");
   const [ready, setReady] = useState(false);
+  const hasLiveData = useRef(false);
 
   const hydrate = useCallback(async () => {
     try {
       if (!isSupabaseConfigured) {
-        setRow(defaultSiteSettings);
-        setSource("mock");
+        if (!hasLiveData.current) {
+          setRow(defaultSiteSettings);
+          setSource("mock");
+        }
         setReady(true);
         return;
       }
+
       const remote = await fetchSiteSettings();
       if (remote) {
         setRow(remote);
         setSource("supabase");
-      } else {
+        hasLiveData.current = true;
+      } else if (!hasLiveData.current) {
+        // First load only — keep last-good data on later failed polls.
         setRow(defaultSiteSettings);
         setSource("mock");
       }
     } catch (err) {
       console.error("[tariq] SiteSettingsProvider hydrate:", err);
-      setRow(defaultSiteSettings);
-      setSource("mock");
+      if (!hasLiveData.current) {
+        setRow(defaultSiteSettings);
+        setSource("mock");
+      }
     } finally {
       setReady(true);
     }
@@ -197,7 +251,6 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
     void hydrate();
   }, [hydrate]);
 
-  // Refetch on tab focus / visibility / SPA navigation so admin edits show quickly.
   useEffect(() => {
     const onFocus = () => {
       void hydrate();
@@ -220,7 +273,6 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
     };
   }, [hydrate]);
 
-  // Lightweight polling while the tab is visible (backup if Realtime is off).
   useEffect(() => {
     if (!isSupabaseConfigured) return;
 
@@ -240,10 +292,11 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
     const applyRemote = () => {
       void fetchSiteSettings()
         .then((remote) => {
-          if (remote) {
-            setRow(remote);
-            setSource("supabase");
-          }
+          if (!remote) return;
+          setRow(remote);
+          setSource("supabase");
+          hasLiveData.current = true;
+          setReady(true);
         })
         .catch((err) => {
           console.error("[tariq] site settings realtime refresh:", err);
@@ -255,9 +308,7 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "site_settings" }, applyRemote)
       .on("postgres_changes", { event: "*", schema: "public", table: "social_links" }, applyRemote)
       .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          applyRemote();
-        }
+        if (status === "SUBSCRIBED") applyRemote();
       });
 
     return () => {
@@ -269,6 +320,7 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
     const mapped = mapSettings(row, source);
     return {
       ...mapped,
+      socialLinks: mapped.socialLinks ?? EMPTY_SOCIALS,
       ready,
       refresh: hydrate,
     };
@@ -279,6 +331,15 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
 
 export function useSiteSettings() {
   const ctx = useContext(SiteSettingsContext);
-  if (!ctx) throw new Error("useSiteSettings must be used within SiteSettingsProvider");
+  if (!ctx) {
+    // Soft fallback — avoid hard crash if a tree mounts outside the provider.
+    console.error("useSiteSettings must be used within SiteSettingsProvider");
+    return {
+      ...mapSettings(defaultSiteSettings, "mock"),
+      socialLinks: EMPTY_SOCIALS,
+      ready: true,
+      refresh: async () => undefined,
+    } satisfies SiteSettings;
+  }
   return ctx;
 }

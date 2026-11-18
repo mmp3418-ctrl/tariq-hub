@@ -22,7 +22,7 @@ export function SiteNav({ sticky = true }: { sticky?: boolean }) {
   const reduce = useReducedMotion();
   const { t, theme, toggleTheme, locale, toggleLocale, dir } = usePreferences();
   const { openSearch } = useSearch();
-  const { logoUrl } = useSiteSettings();
+  const { logoUrl = "" } = useSiteSettings() ?? {};
   const [open, setOpen] = useState(false);
   const CtaArrow = dir === "rtl" ? ArrowLeft : ArrowRight;
   const isDark = theme === "dark";

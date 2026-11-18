@@ -10,7 +10,13 @@ type ContactQuickLinksProps = {
 };
 
 export function ContactQuickLinks({ compact = false, className = "" }: ContactQuickLinksProps) {
-  const { phoneNumber, whatsappNumber, telegramLink, socialLinks, email } = useSiteSettings();
+  const settings = useSiteSettings();
+  const phoneNumber = settings?.phoneNumber ?? "";
+  const whatsappNumber = settings?.whatsappNumber ?? "";
+  const telegramLink = settings?.telegramLink ?? "";
+  const email = settings?.email ?? "";
+  const socialLinks = Array.isArray(settings?.socialLinks) ? settings.socialLinks : [];
+
   const phoneHref = toTelHref(phoneNumber);
   const whatsappHref = toWhatsAppHref(whatsappNumber);
 
@@ -20,7 +26,7 @@ export function ContactQuickLinks({ compact = false, className = "" }: ContactQu
     items.push({
       key: "phone",
       href: phoneHref,
-      label: phoneNumber,
+      label: phoneNumber || "Phone",
       node: <Phone className="size-3.5 text-teal" />,
     });
   }
@@ -42,14 +48,14 @@ export function ContactQuickLinks({ compact = false, className = "" }: ContactQu
   }
 
   for (const social of socialLinks) {
-    if (!social.href || !social.isVisible) continue;
+    if (!social?.href || !social?.isVisible) continue;
     if (social.platform === "telegram" && telegramLink) continue;
     if (social.platform === "whatsapp" && whatsappHref) continue;
     if ((social.platform === "email" || social.icon === "email") && email) continue;
     items.push({
-      key: social.id,
+      key: social.id || social.href,
       href: social.href,
-      label: social.label,
+      label: social.label || social.platform || "Link",
       node: (
         <SocialIcon
           platform={social.platform}
@@ -61,7 +67,20 @@ export function ContactQuickLinks({ compact = false, className = "" }: ContactQu
     });
   }
 
-  if (items.length === 0) return null;
+  // Keep a stable slot while loading so the nav/footer layout does not jump away.
+  if (items.length === 0) {
+    if (!settings?.ready) {
+      return (
+        <div
+          className={`flex flex-wrap items-center gap-1.5 ${className}`}
+          aria-hidden="true"
+        >
+          <span className={`rounded-lg border border-transparent ${compact ? "size-8" : "h-9 w-16"}`} />
+        </div>
+      );
+    }
+    return null;
+  }
 
   return (
     <div className={`flex flex-wrap items-center gap-1.5 ${className}`}>

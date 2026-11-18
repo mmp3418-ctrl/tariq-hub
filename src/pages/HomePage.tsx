@@ -16,7 +16,7 @@ export function HomePage() {
   usePageTitle(t("brandName"));
 
   const heroLead =
-    (locale === "en" ? heroSubtitleEn : heroSubtitleAr).trim() || t("heroLead");
+    (locale === "en" ? heroSubtitleEn : heroSubtitleAr)?.trim?.() || t("heroLead");
 
   const gateways = [
     { to: "/grades", key: "ctaGrades", icon: Layers, text: t("grades") },

@@ -17,7 +17,7 @@ const links = [
 
 export function SiteFooter() {
   const { t } = usePreferences();
-  const { logoUrl } = useSiteSettings();
+  const { logoUrl = "" } = useSiteSettings() ?? {};
 
   return (
     <footer className="mt-auto overflow-x-hidden border-t border-line">

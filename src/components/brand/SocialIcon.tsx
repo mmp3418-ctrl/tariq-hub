@@ -13,6 +13,7 @@ import {
   Video,
   type LucideIcon,
 } from "lucide-react";
+import { useState } from "react";
 
 const ICONS: Record<string, LucideIcon> = {
   facebook: Users,
@@ -36,16 +37,33 @@ const ICONS: Record<string, LucideIcon> = {
 };
 
 type SocialIconProps = {
-  platform?: string;
-  icon?: string;
+  platform?: string | null;
+  icon?: string | null;
   customIconUrl?: string | null;
   className?: string;
 };
 
-export function SocialIcon({ platform = "globe", icon, customIconUrl, className = "size-4" }: SocialIconProps) {
-  if (customIconUrl) {
-    return <img src={customIconUrl} alt="" className={`${className} rounded-sm object-contain`} loading="lazy" />;
+export function SocialIcon({
+  platform = "globe",
+  icon,
+  customIconUrl,
+  className = "size-4",
+}: SocialIconProps) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const custom = (customIconUrl ?? "").trim();
+
+  if (custom && !imgFailed) {
+    return (
+      <img
+        src={custom}
+        alt=""
+        className={`${className} rounded-sm object-contain`}
+        loading="lazy"
+        onError={() => setImgFailed(true)}
+      />
+    );
   }
+
   const key = (icon || platform || "globe").toLowerCase();
   const Icon = ICONS[key] ?? Globe;
   return <Icon className={className} aria-hidden="true" />;

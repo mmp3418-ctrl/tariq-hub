@@ -18,9 +18,18 @@ export function ContactPage() {
   const { t, locale } = usePreferences();
   usePageTitle(t("contact"));
 
-  const phoneHref = toTelHref(settings.phoneNumber);
-  const whatsappHref = toWhatsAppHref(settings.whatsappNumber);
-  const emailHref = toMailtoHref(settings.email);
+  const phoneNumber = settings?.phoneNumber ?? "";
+  const whatsappNumber = settings?.whatsappNumber ?? "";
+  const email = settings?.email ?? "";
+  const address = settings?.address ?? "";
+  const mapsUrl = settings?.mapsUrl ?? "";
+  const telegramLink = settings?.telegramLink ?? "";
+  const socialLinks = Array.isArray(settings?.socialLinks) ? settings.socialLinks : [];
+  const ready = settings?.ready !== false;
+
+  const phoneHref = toTelHref(phoneNumber);
+  const whatsappHref = toWhatsAppHref(whatsappNumber);
+  const emailHref = toMailtoHref(email);
 
   const socialLabels: Record<string, string> = {
     youtube: locale === "en" ? "YouTube" : "يوتيوب",
@@ -39,15 +48,15 @@ export function ContactPage() {
   };
 
   const channelItems = [
-    ...settings.socialLinks.filter((item) => item.isVisible && item.href),
-    ...(settings.telegramLink && !settings.socialLinks.some((item) => item.platform === "telegram")
+    ...socialLinks.filter((item) => item?.isVisible && item?.href),
+    ...(telegramLink && !socialLinks.some((item) => item?.platform === "telegram")
       ? [
           {
             id: "telegram-primary",
             platform: "telegram",
             label: "Telegram",
-            handle: settings.telegramLink.replace(/^https?:\/\//, ""),
-            href: settings.telegramLink,
+            handle: telegramLink.replace(/^https?:\/\//, ""),
+            href: telegramLink,
             icon: "telegram",
             customIconUrl: "",
             isVisible: true,
@@ -60,14 +69,14 @@ export function ContactPage() {
     Boolean(emailHref) ||
     Boolean(phoneHref) ||
     Boolean(whatsappHref) ||
-    Boolean(settings.address) ||
-    Boolean(settings.mapsUrl);
+    Boolean(address) ||
+    Boolean(mapsUrl);
 
   return (
     <div className="overflow-x-hidden pb-20">
       <Shell>
         <Folio index="06" label={t("folioContact")} />
-        {!settings.ready ? (
+        {!ready ? (
           <ContactSkeleton />
         ) : (
           <section className="mt-6 grid gap-4 lg:grid-cols-12">
@@ -91,7 +100,7 @@ export function ContactPage() {
                           className="inline-flex items-center gap-2 text-base font-semibold text-white"
                         >
                           <Mail className="size-4 text-emerald" />
-                          <bdi dir="ltr">{settings.email}</bdi>
+                          <bdi dir="ltr">{email}</bdi>
                         </a>
                       </dd>
                     </div>
@@ -107,7 +116,7 @@ export function ContactPage() {
                           dir="ltr"
                         >
                           <Phone className="size-4 text-emerald" />
-                          {settings.phoneNumber}
+                          {phoneNumber}
                         </a>
                       </dd>
                     </div>
@@ -124,25 +133,25 @@ export function ContactPage() {
                           dir="ltr"
                         >
                           <SocialIcon platform="whatsapp" className="size-4 text-emerald" />
-                          {settings.whatsappNumber}
+                          {whatsappNumber}
                         </ExternalAnchor>
                       </dd>
                     </div>
                   ) : null}
 
-                  {settings.address || settings.mapsUrl ? (
+                  {address || mapsUrl ? (
                     <div>
                       <dt className="text-soft">{t("place")}</dt>
                       <dd className="mt-1">
-                        {settings.mapsUrl ? (
+                        {mapsUrl ? (
                           <ExternalAnchor
-                            href={settings.mapsUrl}
+                            href={mapsUrl}
                             kind="maps"
                             className="inline-flex items-start gap-2 text-base font-semibold text-white"
                           >
                             <MapPin className="mt-1 size-4 shrink-0 text-emerald" />
                             <span>
-                              {settings.address || t("openMap")}
+                              {address || t("openMap")}
                               <span className="mt-1 inline-flex items-center gap-1 text-sm font-normal text-soft">
                                 <ExternalLink className="size-3.5" />
                                 {t("openMap")}
@@ -152,7 +161,7 @@ export function ContactPage() {
                         ) : (
                           <span className="inline-flex items-start gap-2 text-base font-semibold text-white">
                             <MapPin className="mt-1 size-4 shrink-0 text-emerald" />
-                            <span>{settings.address}</span>
+                            <span>{address}</span>
                           </span>
                         )}
                       </dd>
@@ -170,30 +179,39 @@ export function ContactPage() {
               ) : (
                 <ul className="mt-8 divide-y divide-line border-y border-line">
                   {channelItems.map((social) => (
-                    <li key={social.id} className="flex min-h-14 items-center justify-between gap-4 py-4 sm:py-5">
+                    <li
+                      key={social?.id || social?.href}
+                      className="flex min-h-14 items-center justify-between gap-4 py-4 sm:py-5"
+                    >
                       <div className="flex min-w-0 items-center gap-3">
                         <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-teal">
                           <SocialIcon
-                            platform={social.platform}
-                            icon={social.icon}
-                            customIconUrl={social.customIconUrl}
+                            platform={social?.platform}
+                            icon={social?.icon}
+                            customIconUrl={social?.customIconUrl}
                             className="size-4"
                           />
                         </span>
                         <div className="min-w-0">
                           <p className="truncate font-semibold text-fg">
-                            {socialLabels[social.platform] ?? social.label}
+                            {socialLabels[social?.platform ?? ""] ?? social?.label ?? ""}
                           </p>
-                          {social.handle ? (
+                          {social?.handle ? (
                             <p className="mt-1 truncate text-sm text-muted">
                               <bdi dir="ltr">{social.handle}</bdi>
                             </p>
                           ) : null}
                         </div>
                       </div>
-                      <ExternalAnchor href={social.href} kind={social.icon || social.platform} className="shrink-0 text-sm font-semibold text-teal">
-                        {t("open")}
-                      </ExternalAnchor>
+                      {social?.href ? (
+                        <ExternalAnchor
+                          href={social.href}
+                          kind={social.icon || social.platform}
+                          className="shrink-0 text-sm font-semibold text-teal"
+                        >
+                          {t("open")}
+                        </ExternalAnchor>
+                      ) : null}
                     </li>
                   ))}
                 </ul>

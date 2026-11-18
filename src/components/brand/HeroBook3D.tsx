@@ -24,7 +24,9 @@ type HeroBook3DProps = {
 export function HeroBook3D({ className = "" }: HeroBook3DProps) {
   const reduce = useReducedMotion();
   const { t, locale } = usePreferences();
-  const { logoUrl, bookYearLabel } = useSiteSettings();
+  const settings = useSiteSettings();
+  const logoUrl = settings?.logoUrl ?? "";
+  const bookYearLabel = settings?.bookYearLabel?.trim?.() || "2026 - 2027";
   const brandLabel = locale === "en" ? "Tariq Hub" : "منصة طارق";
   const sceneRef = useRef<HTMLDivElement>(null);
   const [opened, setOpened] = useState(false);
