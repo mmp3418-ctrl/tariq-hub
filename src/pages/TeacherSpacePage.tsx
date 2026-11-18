@@ -83,18 +83,9 @@ export function TeacherSpacePage() {
 
   useEffect(() => {
     if (!params.get("section")) {
-      setParams(
-        { section: siteTimetableActive ? "timetable" : "tutorials" },
-        { replace: true },
-      );
+      setParams({ section: "timetable" }, { replace: true });
     }
-  }, [params, setParams, siteTimetableActive]);
-
-  useEffect(() => {
-    if (timetableStatusReady && section === "timetable" && !siteTimetableActive) {
-      setParams({ section: "tutorials" }, { replace: true });
-    }
-  }, [section, setParams, siteTimetableActive, timetableStatusReady]);
+  }, [params, setParams]);
 
   const gradeOptions = useMemo(
     () => (filterStage ? gradesByStage(filterStage) : grades),
@@ -137,15 +128,13 @@ export function TeacherSpacePage() {
     icon: ComponentType<{ className?: string }>;
   };
 
-  const tabs: TeacherSpaceTab[] = (
-    [
-      { id: "timetable", label: t("tsTimetable"), icon: CalendarDays },
-      { id: "tutorials", label: t("tsTutorials"), icon: Clapperboard },
-      { id: "references", label: t("tsReferences"), icon: BookMarked },
-      { id: "questions", label: t("tsQuestions"), icon: HelpCircle },
-      { id: "calculator", label: t("tsCalculator"), icon: Calculator },
-    ] satisfies TeacherSpaceTab[]
-  ).filter((tab) => tab.id !== "timetable" || siteTimetableActive);
+  const tabs: TeacherSpaceTab[] = [
+    { id: "timetable", label: t("tsTimetable"), icon: CalendarDays },
+    { id: "tutorials", label: t("tsTutorials"), icon: Clapperboard },
+    { id: "references", label: t("tsReferences"), icon: BookMarked },
+    { id: "questions", label: t("tsQuestions"), icon: HelpCircle },
+    { id: "calculator", label: t("tsCalculator"), icon: Calculator },
+  ];
 
   const loading = !ready || !academicReady || !timetableStatusReady;
   const showStageGradeFilters =
@@ -231,10 +220,21 @@ export function TeacherSpacePage() {
       <div className="mt-6">
         {loading ? (
           <CatalogSkeleton rows={3} />
-        ) : section === "timetable" && siteTimetableActive ? (
-          <div className="glass rounded-2xl p-4 sm:p-5">
-            <UniversalTimetable embedded />
-          </div>
+        ) : section === "timetable" ? (
+          !timetableStatusReady ? (
+            <CatalogSkeleton rows={2} />
+          ) : siteTimetableActive ? (
+            <div className="glass rounded-2xl border border-white/10 bg-gradient-to-b from-slate-900/40 to-slate-950/60 p-4 shadow-elevated backdrop-blur-xl sm:p-5">
+              <UniversalTimetable embedded />
+            </div>
+          ) : (
+            <EmptyState
+              icon={EmptyIcons.materials}
+              title={t("tsTimetableClosed")}
+              description={t("tsTimetableClosedLead")}
+              tone="soft"
+            />
+          )
         ) : section === "tutorials" ? (
           filteredTutorials.length === 0 ? (
             <EmptyState
