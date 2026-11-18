@@ -1,12 +1,8 @@
 import { Phone } from "lucide-react";
 import type { ReactNode } from "react";
-import {
-  externalLinkProps,
-  toTelHref,
-  toWhatsAppHref,
-  useSiteSettings,
-} from "../../services/siteSettings.tsx";
+import { toTelHref, toWhatsAppHref, useSiteSettings } from "../../services/siteSettings.tsx";
 import { SocialIcon } from "../brand/SocialIcon.tsx";
+import { ExternalAnchor } from "../ui/ExternalAnchor.tsx";
 
 type ContactQuickLinksProps = {
   compact?: boolean;
@@ -70,10 +66,10 @@ export function ContactQuickLinks({ compact = false, className = "" }: ContactQu
   return (
     <div className={`flex flex-wrap items-center gap-1.5 ${className}`}>
       {items.map((item) => (
-        <a
+        <ExternalAnchor
           key={item.key}
           href={item.href}
-          {...externalLinkProps(item.href)}
+          kind={item.key}
           aria-label={item.label}
           title={item.label}
           className={`inline-flex items-center justify-center rounded-lg border border-line text-slate-700 transition hover:border-emerald/40 hover:text-teal dark:text-slate-200 ${
@@ -82,7 +78,7 @@ export function ContactQuickLinks({ compact = false, className = "" }: ContactQu
         >
           {item.node}
           {!compact ? <span className="max-w-[7rem] truncate">{item.label}</span> : null}
-        </a>
+        </ExternalAnchor>
       ))}
     </div>
   );

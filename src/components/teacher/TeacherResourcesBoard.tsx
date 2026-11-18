@@ -1,6 +1,7 @@
 import { ChevronDown, ExternalLink } from "lucide-react";
 import { useMemo, useState } from "react";
 import { ComingSoonBadge } from "../ui/ComingSoonBadge.tsx";
+import { ExternalAnchor } from "../ui/ExternalAnchor.tsx";
 import { isRowComingSoon, type DbTeacherResource } from "../../lib/supabase.ts";
 import { usePreferences } from "../../lib/preferences.tsx";
 import { useGrades, useUnitsByGrade } from "../../services/hooks/useCurriculum.ts";
@@ -71,15 +72,13 @@ function ResourceList({
                 {t("openResource")}
               </span>
             ) : (
-              <a
+              <ExternalAnchor
                 href={href}
-                target="_blank"
-                rel="noreferrer"
                 className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-teal"
               >
                 <ExternalLink className="size-3.5" />
                 {t("openResource")}
-              </a>
+              </ExternalAnchor>
             )}
           </li>
         );

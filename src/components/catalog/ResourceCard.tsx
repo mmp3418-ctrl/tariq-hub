@@ -1,5 +1,6 @@
 import { Download, Play } from "lucide-react";
 import type { ReactNode } from "react";
+import { externalLinkProps, normalizeMediaHref } from "../../lib/contactLinks.ts";
 import { resolveCardColor, resolveResourceIcon } from "../../lib/resourceVisuals.ts";
 import { ComingSoonBadge } from "../ui/ComingSoonBadge.tsx";
 
@@ -92,8 +93,15 @@ export function ResourceCard({
 }
 
 export function ResourceDownloadAction({ href, fileName, label }: { href: string; fileName: string; label: string }) {
+  const safeHref = normalizeMediaHref(href);
+  if (!safeHref) return null;
   return (
-    <a href={href} download={fileName} className="inline-flex items-center gap-1.5 text-slate-900 dark:text-white">
+    <a
+      href={safeHref}
+      download={fileName}
+      {...externalLinkProps(safeHref)}
+      className="inline-flex items-center gap-1.5 text-slate-900 dark:text-white"
+    >
       <Download className="size-4" />
       {label}
     </a>

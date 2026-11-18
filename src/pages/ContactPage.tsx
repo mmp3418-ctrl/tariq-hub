@@ -1,12 +1,12 @@
 import { ExternalLink, Mail, MapPin, Phone } from "lucide-react";
 import { Folio } from "../components/ui/Folio.tsx";
 import { ContactSkeleton } from "../components/ui/CatalogSkeleton.tsx";
+import { ExternalAnchor } from "../components/ui/ExternalAnchor.tsx";
 import { Shell } from "../components/ui/Shell.tsx";
 import { SocialIcon } from "../components/brand/SocialIcon.tsx";
 import { usePageTitle } from "../lib/usePageTitle.ts";
 import { usePreferences } from "../lib/preferences.tsx";
 import {
-  externalLinkProps,
   toMailtoHref,
   toTelHref,
   toWhatsAppHref,
@@ -117,15 +117,15 @@ export function ContactPage() {
                     <div>
                       <dt className="text-soft">WhatsApp</dt>
                       <dd className="mt-1">
-                        <a
+                        <ExternalAnchor
                           href={whatsappHref}
-                          {...externalLinkProps(whatsappHref)}
+                          kind="whatsapp"
                           className="inline-flex items-center gap-2 text-base font-semibold text-white"
                           dir="ltr"
                         >
                           <SocialIcon platform="whatsapp" className="size-4 text-emerald" />
                           {settings.whatsappNumber}
-                        </a>
+                        </ExternalAnchor>
                       </dd>
                     </div>
                   ) : null}
@@ -135,9 +135,9 @@ export function ContactPage() {
                       <dt className="text-soft">{t("place")}</dt>
                       <dd className="mt-1">
                         {settings.mapsUrl ? (
-                          <a
+                          <ExternalAnchor
                             href={settings.mapsUrl}
-                            {...externalLinkProps(settings.mapsUrl)}
+                            kind="maps"
                             className="inline-flex items-start gap-2 text-base font-semibold text-white"
                           >
                             <MapPin className="mt-1 size-4 shrink-0 text-emerald" />
@@ -148,7 +148,7 @@ export function ContactPage() {
                                 {t("openMap")}
                               </span>
                             </span>
-                          </a>
+                          </ExternalAnchor>
                         ) : (
                           <span className="inline-flex items-start gap-2 text-base font-semibold text-white">
                             <MapPin className="mt-1 size-4 shrink-0 text-emerald" />
@@ -191,13 +191,9 @@ export function ContactPage() {
                           ) : null}
                         </div>
                       </div>
-                      <a
-                        href={social.href}
-                        {...externalLinkProps(social.href)}
-                        className="shrink-0 text-sm font-semibold text-teal"
-                      >
+                      <ExternalAnchor href={social.href} kind={social.icon || social.platform} className="shrink-0 text-sm font-semibold text-teal">
                         {t("open")}
-                      </a>
+                      </ExternalAnchor>
                     </li>
                   ))}
                 </ul>

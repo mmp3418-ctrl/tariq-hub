@@ -1,6 +1,7 @@
 import { ExternalLink } from "lucide-react";
 import { useMemo } from "react";
 import { ComingSoonBadge } from "../ui/ComingSoonBadge.tsx";
+import { ExternalAnchor } from "../ui/ExternalAnchor.tsx";
 import { isRowComingSoon } from "../../lib/supabase.ts";
 import { usePreferences } from "../../lib/preferences.tsx";
 import { useGrades } from "../../services/hooks/useCurriculum.ts";
@@ -79,15 +80,13 @@ export function GradeCalculatorToolsBoard() {
                           {t("openResource")}
                         </span>
                       ) : (
-                        <a
+                        <ExternalAnchor
                           href={tool.url}
-                          target="_blank"
-                          rel="noreferrer"
                           className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-teal"
                         >
                           <ExternalLink className="size-3.5" />
                           {t("openResource")}
-                        </a>
+                        </ExternalAnchor>
                       )}
                     </li>
                   );

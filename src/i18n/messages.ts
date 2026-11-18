@@ -5,6 +5,7 @@ type Dict = Record<string, string>;
 const ar: Dict = {
   skip: "تخطي إلى المحتوى",
   home: "الرئيسية",
+  backHome: "العودة للرئيسية",
   grades: "المراحل الدراسية",
   library: "المكتبة",
   playlists: "الشروحات",
@@ -198,6 +199,7 @@ const ar: Dict = {
 const en: Dict = {
   skip: "Skip to content",
   home: "Home",
+  backHome: "Back to Home",
   grades: "Stages",
   library: "Library",
   playlists: "Playlists",

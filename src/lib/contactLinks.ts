@@ -41,6 +41,11 @@ export function isHttpUrl(value: string) {
   }
 }
 
+/** Same-origin static file (PDF/image) — never a bare SPA route segment. */
+export function isStaticAssetPath(value: string) {
+  return value.startsWith("/") && !value.startsWith("//") && /\.[a-z0-9]{2,8}($|\?|#)/i.test(value);
+}
+
 /** Normalize a stored social/contact URL for safe external opening. */
 export function normalizeExternalHref(raw: string, iconOrPlatform = "") {
   const value = raw.trim();
@@ -55,12 +60,26 @@ export function normalizeExternalHref(raw: string, iconOrPlatform = "") {
   if (key === "email" || key === "mail") return toMailtoHref(value);
 
   if (isHttpUrl(value)) return value;
+  if (isStaticAssetPath(value)) return value;
   if (value.includes("@") && !value.includes(" ")) return toMailtoHref(value);
   if (/^[\d+\s()-]{8,}$/.test(value)) return toTelHref(value);
 
   // Prevent relative paths becoming internal SPA 404s.
   if (value.startsWith("//")) return `https:${value}`;
-  if (!/^https?:\/\//i.test(value) && value.includes(".")) {
+  if (!/^https?:\/\//i.test(value) && /^[a-z0-9.-]+\.[a-z]{2,}/i.test(value)) {
+    return `https://${value.replace(/^\/+/, "")}`;
+  }
+  return "";
+}
+
+/** Media / PDF links: allow http(s) or root-absolute static files only. */
+export function normalizeMediaHref(raw: string) {
+  const value = raw.trim();
+  if (!value) return "";
+  if (isHttpUrl(value)) return value;
+  if (isStaticAssetPath(value)) return value;
+  if (value.startsWith("//")) return `https:${value}`;
+  if (!/^https?:\/\//i.test(value) && /^[a-z0-9.-]+\.[a-z]{2,}/i.test(value)) {
     return `https://${value.replace(/^\/+/, "")}`;
   }
   return "";

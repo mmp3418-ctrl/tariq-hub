@@ -4,8 +4,10 @@ import { Link, useParams } from "react-router-dom";
 import { PreviewDrawer } from "../components/library/PreviewDrawer.tsx";
 import { VideoPlayerModal } from "../components/study/VideoPlayerModal.tsx";
 import { ComingSoonBadge } from "../components/ui/ComingSoonBadge.tsx";
+import { ExternalAnchor } from "../components/ui/ExternalAnchor.tsx";
 import { MissingPath } from "../components/ui/MissingPath.tsx";
 import { Shell } from "../components/ui/Shell.tsx";
+import { normalizeMediaHref } from "../lib/contactLinks.ts";
 import { gradeLabel, stageLabel } from "../i18n/content.ts";
 import { categoryLabel, RESOURCE_CATEGORIES } from "../lib/resourceCategories.ts";
 import { usePageTitle } from "../lib/usePageTitle.ts";
@@ -69,16 +71,20 @@ function CategoryGroup({
                 >
                   {t("quickPreview")}
                 </button>
-                {soon ? (
+                {soon || !normalizeMediaHref(note.fileUrl) ? (
                   <span className="inline-flex items-center gap-1 text-muted">
                     <Download className="size-3.5" />
                     {t("download")}
                   </span>
                 ) : (
-                  <a href={note.fileUrl} download={note.fileName} className="inline-flex items-center gap-1 text-fg">
+                  <ExternalAnchor
+                    href={note.fileUrl}
+                    download={note.fileName}
+                    className="inline-flex items-center gap-1 text-fg"
+                  >
                     <Download className="size-3.5" />
                     {t("download")}
-                  </a>
+                  </ExternalAnchor>
                 )}
               </div>
             </li>

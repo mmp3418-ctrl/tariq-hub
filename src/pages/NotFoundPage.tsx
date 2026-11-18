@@ -8,11 +8,11 @@ export function NotFoundPage() {
 
   return (
     <MissingPath
-      title={locale === "en" ? "This page left the path." : "هذه الصفحة خرجت عن المسار."}
+      title={locale === "en" ? "Page not found" : "الصفحة غير موجودة"}
       body={
         locale === "en"
-          ? "The link does not match a page in Tariq Hub. Return home or open the stage guide."
-          : "الرابط لا يطابق صفحة في منصة طارق. ارجع إلى الرئيسية أو افتح دليل المراحل."
+          ? "This link does not match a page in Tariq Hub. Use the button below to return home."
+          : "هذا الرابط لا يطابق أي صفحة في منصة طارق. استخدم الزر أدناه للعودة إلى الرئيسية."
       }
     />
   );

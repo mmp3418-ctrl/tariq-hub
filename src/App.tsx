@@ -1,4 +1,5 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { useEffect } from "react";
+import { BrowserRouter, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { RootLayout } from "./layouts/RootLayout.tsx";
 import { ContactPage } from "./pages/ContactPage.tsx";
 import { GradeCalculatorPage } from "./pages/GradeCalculatorPage.tsx";
@@ -13,9 +14,28 @@ import { TeacherLibraryPage } from "./pages/TeacherLibraryPage.tsx";
 import { TeacherPlaylistsPage } from "./pages/TeacherPlaylistsPage.tsx";
 import { TeacherSpacePage } from "./pages/TeacherSpacePage.tsx";
 
+/** Restores deep links when a host served `404.html` then bounced to `/`. */
+function SpaPathRestorer() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem("tariq-spa-path");
+      if (!saved || saved === "/") return;
+      sessionStorage.removeItem("tariq-spa-path");
+      navigate(saved, { replace: true });
+    } catch {
+      /* ignore */
+    }
+  }, [navigate]);
+
+  return null;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
+      <SpaPathRestorer />
       <Routes>
         <Route element={<RootLayout />}>
           <Route index element={<HomePage />} />
