@@ -1,5 +1,5 @@
 import { Navigate } from "react-router-dom";
 
 export function TeacherLibraryPage() {
-  return <Navigate to="/teacher-space" replace />;
+  return <Navigate to="/teacher-space?section=references" replace />;
 }

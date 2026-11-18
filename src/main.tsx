@@ -8,6 +8,7 @@ import { AcademicCatalogProvider } from "./services/AcademicCatalogProvider.tsx"
 import { CatalogProvider } from "./services/CatalogProvider.tsx";
 import { SiteSettingsProvider } from "./services/siteSettings.tsx";
 import { TeacherPortalProvider } from "./services/teacherPortal.tsx";
+import { TeacherSpaceProvider } from "./services/TeacherSpaceProvider.tsx";
 import "./styles/index.css";
 
 createRoot(document.getElementById("root")!).render(
@@ -18,11 +19,13 @@ createRoot(document.getElementById("root")!).render(
           <AcademicCatalogProvider>
             <CatalogProvider>
               <TeacherPortalProvider>
-                <SearchProvider>
-                  <ErrorBoundary>
-                    <App />
-                  </ErrorBoundary>
-                </SearchProvider>
+                <TeacherSpaceProvider>
+                  <SearchProvider>
+                    <ErrorBoundary>
+                      <App />
+                    </ErrorBoundary>
+                  </SearchProvider>
+                </TeacherSpaceProvider>
               </TeacherPortalProvider>
             </CatalogProvider>
           </AcademicCatalogProvider>
