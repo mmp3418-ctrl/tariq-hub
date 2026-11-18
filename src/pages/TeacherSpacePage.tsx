@@ -123,6 +123,7 @@ export function TeacherSpacePage() {
   const {
     ready,
     gradeCalculatorActive,
+    siteTimetableActive,
     timetables,
     tutorials,
     references,
@@ -141,30 +142,26 @@ export function TeacherSpacePage() {
 
   useEffect(() => {
     if (!params.get("section")) {
-      setParams({ section: "timetable" }, { replace: true });
+      setParams(
+        { section: siteTimetableActive ? "timetable" : "tutorials" },
+        { replace: true },
+      );
     }
-  }, [params, setParams]);
+  }, [params, setParams, siteTimetableActive]);
 
   useEffect(() => {
-    if (section === "calculator" && ready && !gradeCalculatorActive) {
-      // keep section but show closed message
+    if (ready && section === "timetable" && !siteTimetableActive) {
+      setParams({ section: "tutorials" }, { replace: true });
     }
-  }, [gradeCalculatorActive, ready, section]);
+  }, [ready, section, setParams, siteTimetableActive]);
 
   const gradeOptions = useMemo(
     () => (filterStage ? gradesByStage(filterStage) : grades),
     [filterStage, grades, gradesByStage],
   );
 
-  const filteredTimetables = useMemo(
-    () =>
-      timetables.filter((item) => {
-        if (filterStage && item.stageId !== filterStage) return false;
-        if (filterGrade && item.gradeId !== filterGrade) return false;
-        return true;
-      }),
-    [filterGrade, filterStage, timetables],
-  );
+  // Global static timetable: all active schedules across stages/grades
+  const publicTimetables = useMemo(() => timetables, [timetables]);
 
   const filteredTutorials = useMemo(
     () =>
@@ -202,9 +199,11 @@ export function TeacherSpacePage() {
     { id: "references", label: t("tsReferences"), icon: BookMarked },
     { id: "questions", label: t("tsQuestions"), icon: HelpCircle },
     { id: "calculator", label: t("tsCalculator"), icon: Calculator },
-  ];
+  ].filter((tab) => tab.id !== "timetable" || siteTimetableActive);
 
   const loading = !ready || !academicReady;
+  const showStageGradeFilters =
+    section !== "calculator" && section !== "timetable";
 
   return (
     <Shell className="overflow-x-hidden pb-20">
@@ -245,7 +244,7 @@ export function TeacherSpacePage() {
         })}
       </div>
 
-      {section !== "calculator" ? (
+      {showStageGradeFilters ? (
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
           <label className="block space-y-1.5">
             <span className="text-xs font-semibold text-muted">{t("stepStages")}</span>
@@ -286,8 +285,8 @@ export function TeacherSpacePage() {
       <div className="mt-6">
         {loading ? (
           <CatalogSkeleton rows={3} />
-        ) : section === "timetable" ? (
-          filteredTimetables.length === 0 ? (
+        ) : section === "timetable" && siteTimetableActive ? (
+          publicTimetables.length === 0 ? (
             <EmptyState
               icon={EmptyIcons.materials}
               title={t("tsEmptyTimetable")}
@@ -296,7 +295,7 @@ export function TeacherSpacePage() {
             />
           ) : (
             <ul className="grid gap-4">
-              {filteredTimetables.map((item) => (
+              {publicTimetables.map((item) => (
                 <li key={item.id}>
                   <article className="glass flex h-full flex-col gap-4 overflow-hidden rounded-2xl p-4 sm:p-5">
                     <div className="flex flex-wrap items-start justify-between gap-3">

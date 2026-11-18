@@ -28,6 +28,7 @@ export type TeacherSpaceSection =
 type TeacherSpaceValue = {
   ready: boolean;
   gradeCalculatorActive: boolean;
+  siteTimetableActive: boolean;
   timetables: TeacherTimetableView[];
   tutorials: TeacherTutorialView[];
   references: TeacherReferenceView[];
@@ -47,6 +48,7 @@ const EMPTY: TeacherSpaceBundle = {
   references: [],
   questions: [],
   gradeCalculatorActive: true,
+  siteTimetableActive: true,
   source: "empty",
 };
 
@@ -109,6 +111,11 @@ export function TeacherSpaceProvider({ children }: { children: ReactNode }) {
         { event: "*", schema: "public", table: "teacher_space_settings" },
         refresh,
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "site_timetable_status" },
+        refresh,
+      )
       .subscribe();
     return () => {
       void client.removeChannel(channel);
@@ -132,6 +139,7 @@ export function TeacherSpaceProvider({ children }: { children: ReactNode }) {
     return {
       ready,
       gradeCalculatorActive: bundle.gradeCalculatorActive,
+      siteTimetableActive: bundle.siteTimetableActive,
       timetables,
       tutorials,
       references,
@@ -162,6 +170,7 @@ export function useTeacherSpace() {
     return {
       ready: true,
       gradeCalculatorActive: false,
+      siteTimetableActive: false,
       timetables: [],
       tutorials: [],
       references: [],

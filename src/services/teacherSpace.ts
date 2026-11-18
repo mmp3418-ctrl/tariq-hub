@@ -47,6 +47,8 @@ export type TeacherSpaceBundle = {
   references: TeacherReferenceView[];
   questions: QuestionBankView[];
   gradeCalculatorActive: boolean;
+  /** Global public timetable visibility from site_timetable_status */
+  siteTimetableActive: boolean;
   source: "supabase" | "empty";
 };
 
@@ -103,6 +105,7 @@ export async function fetchTeacherSpaceBundle(): Promise<TeacherSpaceBundle> {
     references: [],
     questions: [],
     gradeCalculatorActive: false,
+    siteTimetableActive: false,
     source: "empty",
   };
 
@@ -111,17 +114,30 @@ export async function fetchTeacherSpaceBundle(): Promise<TeacherSpaceBundle> {
     return empty;
   }
 
-  const [timetablesRaw, tutorialsRaw, referencesRaw, questionsRaw, settingsRes] =
-    await Promise.all([
-      selectActive<Record<string, unknown>>("teacher_timetables"),
-      selectActive<Record<string, unknown>>("teacher_tutorials"),
-      selectActive<Record<string, unknown>>("teacher_references"),
-      selectActive<Record<string, unknown>>("question_bank"),
-      supabase.from("teacher_space_settings").select("*").eq("id", 1).maybeSingle(),
-    ]);
+  const [
+    timetablesRaw,
+    tutorialsRaw,
+    referencesRaw,
+    questionsRaw,
+    settingsRes,
+    timetableStatusRes,
+  ] = await Promise.all([
+    selectActive<Record<string, unknown>>("teacher_timetables"),
+    selectActive<Record<string, unknown>>("teacher_tutorials"),
+    selectActive<Record<string, unknown>>("teacher_references"),
+    selectActive<Record<string, unknown>>("question_bank"),
+    supabase.from("teacher_space_settings").select("*").eq("id", 1).maybeSingle(),
+    supabase.from("site_timetable_status").select("*").eq("id", 1).maybeSingle(),
+  ]);
 
   if (settingsRes.error) {
     console.error("[tariq] teacher_space_settings:", settingsRes.error.message);
+  }
+  if (timetableStatusRes.error) {
+    console.error(
+      "[tariq] site_timetable_status:",
+      timetableStatusRes.error.message,
+    );
   }
 
   const gradeCalculatorActive =
@@ -129,6 +145,14 @@ export async function fetchTeacherSpaceBundle(): Promise<TeacherSpaceBundle> {
       ? true
       : (settingsRes.data as { grade_calculator_active?: boolean }).grade_calculator_active !==
         false;
+
+  // Default visible when the row is missing; hide only when explicitly false
+  const siteTimetableActive =
+    timetableStatusRes.error != null
+      ? true
+      : timetableStatusRes.data == null
+        ? true
+        : (timetableStatusRes.data as { is_active?: boolean }).is_active !== false;
 
   const timetables: TeacherTimetableView[] = timetablesRaw
     .filter(active)
@@ -229,6 +253,7 @@ export async function fetchTeacherSpaceBundle(): Promise<TeacherSpaceBundle> {
     references: references.length,
     questions: questions.length,
     gradeCalculatorActive,
+    siteTimetableActive,
   });
 
   const hasData =
@@ -236,7 +261,8 @@ export async function fetchTeacherSpaceBundle(): Promise<TeacherSpaceBundle> {
     tutorials.length > 0 ||
     references.length > 0 ||
     questions.length > 0 ||
-    settingsRes.data != null;
+    settingsRes.data != null ||
+    timetableStatusRes.data != null;
 
   return {
     timetables,
@@ -244,6 +270,7 @@ export async function fetchTeacherSpaceBundle(): Promise<TeacherSpaceBundle> {
     references,
     questions,
     gradeCalculatorActive,
+    siteTimetableActive,
     source: hasData ? "supabase" : "empty",
   };
 }
