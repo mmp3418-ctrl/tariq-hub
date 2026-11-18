@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, Download, ExternalLink, Eye, Play } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { PlaylistCover } from "../components/playlists/PlaylistCover.tsx";
 import { CatalogSkeleton } from "../components/ui/CatalogSkeleton.tsx";
 import { EmptyIcons, EmptyState } from "../components/ui/EmptyState.tsx";
 import { ExternalAnchor } from "../components/ui/ExternalAnchor.tsx";
@@ -277,7 +278,12 @@ export function GradeDetailsPage() {
                 <ul className="grid gap-3 sm:grid-cols-2">
                   {items.map((item) => (
                     <li key={item.id}>
-                      <article className="glass flex h-full flex-col gap-3 rounded-2xl p-4 sm:p-5">
+                      <article className="glass flex h-full flex-col gap-3 overflow-hidden rounded-2xl p-4 sm:p-5">
+                        <PlaylistCover
+                          src={item.coverImageUrl}
+                          title={item.title}
+                          className="-mx-1"
+                        />
                         <div className="flex flex-wrap gap-2">
                           {item.materialType ? (
                             <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-bold text-teal">

@@ -50,6 +50,7 @@ export type DbVideoPlaylist = {
   /** Canonical column written by tariq-admin */
   playlist_url?: string | null;
   youtube_url?: string | null;
+  cover_image_url?: string | null;
   material_type?: string | null;
   stage_id?: string | null;
   grade_id?: string | null;
@@ -98,6 +99,7 @@ export type PlaylistView = {
   id: string;
   title: string;
   youtubeUrl: string;
+  coverImageUrl: string;
   materialType: string;
   badgeAr: string;
   badgeEn: string;
@@ -440,6 +442,9 @@ export async function fetchAcademicBundle(): Promise<AcademicBundle> {
   // —— Playlists (playlist_url / youtube_url) ——
   const playlistsMapped = (playlistsRaw ?? []).filter(activeRow).map((row) => {
     const youtubeUrl = resolvePlaylistUrl(row);
+    const coverRaw = String(row.cover_image_url ?? "").trim();
+    const coverImageUrl =
+      normalizeMediaHref(coverRaw) || normalizeExternalHref(coverRaw) || "";
     const unitId = row.unit_id ? String(row.unit_id) : "";
     const typedUnit = (row.unit_name || "").trim();
     const type = row.material_type ? normalizeMaterialType(row.material_type) : "";
@@ -449,6 +454,7 @@ export async function fetchAcademicBundle(): Promise<AcademicBundle> {
       id: String(row.id),
       title: (row.title || "").trim() || "شرح",
       youtubeUrl,
+      coverImageUrl,
       materialType: type,
       badgeAr: type ? materialTypeBadge(type, "ar") : "يوتيوب",
       badgeEn: type ? materialTypeBadge(type, "en") : "YouTube",
