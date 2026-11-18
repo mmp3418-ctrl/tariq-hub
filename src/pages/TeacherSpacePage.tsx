@@ -9,7 +9,7 @@ import {
   HelpCircle,
   Play,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PlaylistCover } from "../components/playlists/PlaylistCover.tsx";
 import { UniversalTimetable } from "../components/schedules/UniversalTimetable.tsx";
@@ -131,13 +131,21 @@ export function TeacherSpacePage() {
     [filterGrade, filterStage, questions],
   );
 
-  const tabs: { id: TeacherSpaceSection; label: string; icon: typeof CalendarDays }[] = [
-    { id: "timetable", label: t("tsTimetable"), icon: CalendarDays },
-    { id: "tutorials", label: t("tsTutorials"), icon: Clapperboard },
-    { id: "references", label: t("tsReferences"), icon: BookMarked },
-    { id: "questions", label: t("tsQuestions"), icon: HelpCircle },
-    { id: "calculator", label: t("tsCalculator"), icon: Calculator },
-  ].filter((tab) => tab.id !== "timetable" || siteTimetableActive);
+  type TeacherSpaceTab = {
+    id: TeacherSpaceSection;
+    label: string;
+    icon: ComponentType<{ className?: string }>;
+  };
+
+  const tabs: TeacherSpaceTab[] = (
+    [
+      { id: "timetable", label: t("tsTimetable"), icon: CalendarDays },
+      { id: "tutorials", label: t("tsTutorials"), icon: Clapperboard },
+      { id: "references", label: t("tsReferences"), icon: BookMarked },
+      { id: "questions", label: t("tsQuestions"), icon: HelpCircle },
+      { id: "calculator", label: t("tsCalculator"), icon: Calculator },
+    ] satisfies TeacherSpaceTab[]
+  ).filter((tab) => tab.id !== "timetable" || siteTimetableActive);
 
   const loading = !ready || !academicReady || !timetableStatusReady;
   const showStageGradeFilters =
