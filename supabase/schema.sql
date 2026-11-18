@@ -51,8 +51,21 @@ CREATE TABLE IF NOT EXISTS site_settings (
   whatsapp_number TEXT DEFAULT '',
   telegram_link TEXT DEFAULT '',
   social_links JSONB DEFAULT '[]'::jsonb,
+  email TEXT DEFAULT '',
+  address_text TEXT DEFAULT '',
+  maps_url TEXT DEFAULT '',
+  hero_subtitle_ar TEXT,
+  hero_subtitle_en TEXT,
+  book_year_label TEXT,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS email TEXT DEFAULT '';
+ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS address_text TEXT DEFAULT '';
+ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS maps_url TEXT DEFAULT '';
+ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS hero_subtitle_ar TEXT;
+ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS hero_subtitle_en TEXT;
+ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS book_year_label TEXT;
 
 -- Live shape on the Tariq Supabase project (one row per timetable cell)
 CREATE TABLE IF NOT EXISTS teacher_schedules (

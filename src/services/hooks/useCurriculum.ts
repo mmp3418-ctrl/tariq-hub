@@ -1,9 +1,5 @@
 import { useCatalogStore } from "../CatalogProvider.tsx";
 import type { CatalogLesson, CatalogNote, Grade, PlatformPulse, Stage, Subject } from "../types.ts";
-import type { ContactProfile } from "../contact.ts";
-import { listContact } from "../contact.ts";
-import { useEffect, useState } from "react";
-import { fetchContact } from "../contact.ts";
 
 export function useStages(): Stage[] {
   return useCatalogStore().stages;
@@ -80,18 +76,4 @@ export function useNotesByUnit(unitId: string) {
 
 export function usePlaylistsByUnit(unitId: string) {
   return useCatalogStore().playlistsByUnit(unitId);
-}
-
-export function useContact(): ContactProfile {
-  const [value, setValue] = useState<ContactProfile>(() => listContact());
-  useEffect(() => {
-    let active = true;
-    void fetchContact().then((next) => {
-      if (active) setValue(next);
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
-  return value;
 }

@@ -142,6 +142,8 @@ export type DbSocialLink = {
   handle?: string;
   icon?: string;
   custom_icon_url?: string | null;
+  is_visible?: boolean | null;
+  is_active?: boolean | null;
 };
 
 export type DbSiteSettings = {
@@ -157,6 +159,15 @@ export type DbSiteSettings = {
   hero_subtitle_ar?: string | null;
   hero_subtitle_en?: string | null;
   book_year_label?: string | null;
+  /** Optional columns — present when admin/schema supports them. */
+  email?: string | null;
+  contact_email?: string | null;
+  address?: string | null;
+  address_text?: string | null;
+  location_text?: string | null;
+  maps_url?: string | null;
+  google_maps_url?: string | null;
+  location_url?: string | null;
 };
 
 export type TeacherPlannerMap = Record<string, string>;
@@ -195,6 +206,13 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey, {
       auth: { persistSession: false, autoRefreshToken: false },
       realtime: { params: { eventsPerSecond: 8 } },
+      global: {
+        fetch: (input, init) =>
+          fetch(input, {
+            ...init,
+            cache: "no-store",
+          }),
+      },
     })
   : null;
 
@@ -315,6 +333,14 @@ export const defaultSiteSettings: DbSiteSettings = {
   hero_subtitle_ar: "منصتك التعليمية الشاملة للمنهج الليبي",
   hero_subtitle_en: "Your complete educational hub for the Libyan curriculum",
   book_year_label: "2026 - 2027",
+  email: "",
+  contact_email: "",
+  address: "",
+  address_text: "",
+  location_text: "",
+  maps_url: "",
+  google_maps_url: "",
+  location_url: "",
 };
 
 export async function fetchRemoteUnits(): Promise<DbUnit[] | null> {

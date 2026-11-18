@@ -1,6 +1,11 @@
 import { Phone } from "lucide-react";
 import type { ReactNode } from "react";
-import { toTelHref, toWhatsAppHref, useSiteSettings } from "../../services/siteSettings.tsx";
+import {
+  externalLinkProps,
+  toTelHref,
+  toWhatsAppHref,
+  useSiteSettings,
+} from "../../services/siteSettings.tsx";
 import { SocialIcon } from "../brand/SocialIcon.tsx";
 
 type ContactQuickLinksProps = {
@@ -9,7 +14,7 @@ type ContactQuickLinksProps = {
 };
 
 export function ContactQuickLinks({ compact = false, className = "" }: ContactQuickLinksProps) {
-  const { phoneNumber, whatsappNumber, telegramLink, socialLinks } = useSiteSettings();
+  const { phoneNumber, whatsappNumber, telegramLink, socialLinks, email } = useSiteSettings();
   const phoneHref = toTelHref(phoneNumber);
   const whatsappHref = toWhatsAppHref(whatsappNumber);
 
@@ -31,19 +36,20 @@ export function ContactQuickLinks({ compact = false, className = "" }: ContactQu
       node: <SocialIcon platform="whatsapp" icon="whatsapp" className="size-3.5 text-teal" />,
     });
   }
-  if (telegramLink.trim()) {
+  if (telegramLink) {
     items.push({
       key: "telegram",
-      href: telegramLink.trim(),
+      href: telegramLink,
       label: "Telegram",
       node: <SocialIcon platform="telegram" icon="telegram" className="size-3.5 text-teal" />,
     });
   }
 
   for (const social of socialLinks) {
-    if (!social.href) continue;
-    if (social.platform === "telegram" && telegramLink.trim()) continue;
+    if (!social.href || !social.isVisible) continue;
+    if (social.platform === "telegram" && telegramLink) continue;
     if (social.platform === "whatsapp" && whatsappHref) continue;
+    if ((social.platform === "email" || social.icon === "email") && email) continue;
     items.push({
       key: social.id,
       href: social.href,
@@ -67,8 +73,7 @@ export function ContactQuickLinks({ compact = false, className = "" }: ContactQu
         <a
           key={item.key}
           href={item.href}
-          target={item.href.startsWith("tel:") ? undefined : "_blank"}
-          rel={item.href.startsWith("tel:") ? undefined : "noreferrer"}
+          {...externalLinkProps(item.href)}
           aria-label={item.label}
           title={item.label}
           className={`inline-flex items-center justify-center rounded-lg border border-line text-slate-700 transition hover:border-emerald/40 hover:text-teal dark:text-slate-200 ${
