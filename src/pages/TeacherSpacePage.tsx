@@ -3,6 +3,7 @@ import {
   Calculator,
   CalendarDays,
   Clapperboard,
+  Construction,
   Download,
   ExternalLink,
   Eye,
@@ -25,68 +26,7 @@ import {
   useTeacherSpace,
   type TeacherSpaceSection,
 } from "../services/TeacherSpaceProvider.tsx";
-import type {
-  QuestionBankView,
-  TeacherTimetableView,
-} from "../services/teacherSpace.ts";
-
-const TIMETABLE_DAY_ORDER = [
-  "الأحد",
-  "الاثنين",
-  "الثلاثاء",
-  "الأربعاء",
-  "الخميس",
-] as const;
-
-function TimetableGridPreview({ item }: { item: TeacherTimetableView }) {
-  if (!item.gridData) return null;
-  const days = TIMETABLE_DAY_ORDER.filter((d) => item.gridData![d]);
-  const extra = Object.keys(item.gridData).filter(
-    (d) => !TIMETABLE_DAY_ORDER.includes(d as (typeof TIMETABLE_DAY_ORDER)[number]),
-  );
-  const ordered = [...days, ...extra];
-  if (!ordered.length) return null;
-  const periods = item.periodCount || 6;
-
-  return (
-    <div className="-mx-1 overflow-x-auto px-1">
-      <table className="min-w-[480px] w-full border-collapse text-[11px] sm:text-xs">
-        <thead>
-          <tr>
-            <th className="border border-white/10 bg-emerald-500/15 px-2 py-1.5 text-emerald-200">
-              اليوم
-            </th>
-            {Array.from({ length: periods }, (_, i) => (
-              <th
-                key={i}
-                className="border border-white/10 bg-emerald-500/15 px-2 py-1.5 text-emerald-200"
-              >
-                {i + 1}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {ordered.map((day) => (
-            <tr key={day}>
-              <th className="border border-white/10 bg-white/[0.04] px-2 py-1.5 text-fg">
-                {day}
-              </th>
-              {Array.from({ length: periods }, (_, i) => (
-                <td
-                  key={i}
-                  className="border border-white/10 px-1.5 py-1.5 text-center text-muted"
-                >
-                  {(item.gridData?.[day]?.[i] || "").trim() || "—"}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
+import type { QuestionBankView } from "../services/teacherSpace.ts";
 
 function parseSection(value: string | null): TeacherSpaceSection {
   if (
@@ -123,8 +63,6 @@ export function TeacherSpacePage() {
   const {
     ready,
     gradeCalculatorActive,
-    siteTimetableActive,
-    timetables,
     tutorials,
     references,
     questions,
@@ -142,26 +80,14 @@ export function TeacherSpacePage() {
 
   useEffect(() => {
     if (!params.get("section")) {
-      setParams(
-        { section: siteTimetableActive ? "timetable" : "tutorials" },
-        { replace: true },
-      );
+      setParams({ section: "timetable" }, { replace: true });
     }
-  }, [params, setParams, siteTimetableActive]);
-
-  useEffect(() => {
-    if (ready && section === "timetable" && !siteTimetableActive) {
-      setParams({ section: "tutorials" }, { replace: true });
-    }
-  }, [ready, section, setParams, siteTimetableActive]);
+  }, [params, setParams]);
 
   const gradeOptions = useMemo(
     () => (filterStage ? gradesByStage(filterStage) : grades),
     [filterStage, grades, gradesByStage],
   );
-
-  // Global static timetable: all active schedules across stages/grades
-  const publicTimetables = useMemo(() => timetables, [timetables]);
 
   const filteredTutorials = useMemo(
     () =>
@@ -199,7 +125,7 @@ export function TeacherSpacePage() {
     { id: "references", label: t("tsReferences"), icon: BookMarked },
     { id: "questions", label: t("tsQuestions"), icon: HelpCircle },
     { id: "calculator", label: t("tsCalculator"), icon: Calculator },
-  ].filter((tab) => tab.id !== "timetable" || siteTimetableActive);
+  ];
 
   const loading = !ready || !academicReady;
   const showStageGradeFilters =
@@ -285,74 +211,27 @@ export function TeacherSpacePage() {
       <div className="mt-6">
         {loading ? (
           <CatalogSkeleton rows={3} />
-        ) : section === "timetable" && siteTimetableActive ? (
-          publicTimetables.length === 0 ? (
-            <EmptyState
-              icon={EmptyIcons.materials}
-              title={t("tsEmptyTimetable")}
-              description={t("tsEmptyLead")}
-              tone="soft"
+        ) : section === "timetable" ? (
+          <div
+            dir="rtl"
+            className="glass relative overflow-hidden rounded-2xl border border-emerald-400/20 bg-gradient-to-br from-slate-950/80 via-[#0F172A]/90 to-emerald-950/40 p-8 shadow-elevated sm:p-10"
+          >
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(16,185,129,0.12),_transparent_55%)]"
             />
-          ) : (
-            <ul className="grid gap-4">
-              {publicTimetables.map((item) => (
-                <li key={item.id}>
-                  <article className="glass flex h-full flex-col gap-4 overflow-hidden rounded-2xl p-4 sm:p-5">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-xs text-teal">
-                          {[stageName(item.stageId), gradeName(item.gradeId)]
-                            .filter(Boolean)
-                            .join(" · ")}
-                        </p>
-                        <h3 className="mt-1 text-lg font-bold text-fg">
-                          {item.title}
-                        </h3>
-                      </div>
-                      <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 ring-1 ring-emerald-400/30">
-                        <CalendarDays
-                          className="size-5 text-emerald-400"
-                          aria-hidden
-                        />
-                      </span>
-                    </div>
-
-                    {item.gridData ? (
-                      <TimetableGridPreview item={item} />
-                    ) : (
-                      <div className="flex aspect-[21/9] items-center justify-center rounded-xl bg-gradient-to-br from-slate-900 via-[#0F172A] to-emerald-950/70">
-                        <span className="text-sm text-muted">جدول حصص PDF</span>
-                      </div>
-                    )}
-
-                    <div className="mt-auto flex flex-wrap gap-3 pt-1 text-sm font-semibold">
-                      {item.fileUrl ? (
-                        <>
-                          <ExternalAnchor
-                            href={item.fileUrl}
-                            kind="pdf"
-                            className="inline-flex items-center gap-1.5 text-teal"
-                          >
-                            <Eye className="size-4" />
-                            {t("quickPreview")}
-                          </ExternalAnchor>
-                          <ExternalAnchor
-                            href={item.fileUrl}
-                            kind="pdf"
-                            download={`${item.title || "timetable"}.pdf`}
-                            className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-500/15 px-3 py-2 text-emerald-200 ring-1 ring-emerald-400/25"
-                          >
-                            <Download className="size-4" />
-                            {t("downloadTimetablePdf")}
-                          </ExternalAnchor>
-                        </>
-                      ) : null}
-                    </div>
-                  </article>
-                </li>
-              ))}
-            </ul>
-          )
+            <div className="relative flex flex-col items-center gap-4 text-center">
+              <span className="inline-flex size-14 items-center justify-center rounded-2xl bg-emerald-500/15 ring-1 ring-emerald-400/30">
+                <Construction className="size-7 text-emerald-400" aria-hidden />
+              </span>
+              <h2 className="text-2xl font-extrabold text-fg sm:text-3xl">
+                {t("underDevelopment")}
+              </h2>
+              <p className="max-w-md text-sm leading-7 text-muted sm:text-base">
+                {t("underDevelopmentLead")}
+              </p>
+            </div>
+          </div>
         ) : section === "tutorials" ? (
           filteredTutorials.length === 0 ? (
             <EmptyState

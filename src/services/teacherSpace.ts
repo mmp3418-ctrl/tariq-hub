@@ -1,17 +1,6 @@
 import { normalizeExternalHref, normalizeMediaHref } from "../lib/contactLinks.ts";
 import { isSupabaseConfigured, supabase } from "../lib/supabase.ts";
 
-export type TeacherTimetableView = {
-  id: string;
-  title: string;
-  fileUrl: string;
-  stageId: string;
-  gradeId: string;
-  /** Weekly grid: day → period subjects (for on-page render) */
-  gridData: Record<string, string[]> | null;
-  periodCount: number;
-};
-
 export type TeacherTutorialView = {
   id: string;
   title: string;
@@ -42,13 +31,10 @@ export type QuestionBankView = {
 };
 
 export type TeacherSpaceBundle = {
-  timetables: TeacherTimetableView[];
   tutorials: TeacherTutorialView[];
   references: TeacherReferenceView[];
   questions: QuestionBankView[];
   gradeCalculatorActive: boolean;
-  /** Global public timetable visibility from site_timetable_status */
-  siteTimetableActive: boolean;
   source: "supabase" | "empty";
 };
 
@@ -78,7 +64,6 @@ async function selectActive<T>(table: string): Promise<T[]> {
 
     if (error) {
       console.error(`[tariq] ${table}:`, error.message, error);
-      // Soft fallback without is_active filter
       if (/is_active/i.test(error.message)) {
         const legacy = await supabase.from(table).select("*");
         if (legacy.error) {
@@ -100,12 +85,10 @@ async function selectActive<T>(table: string): Promise<T[]> {
 
 export async function fetchTeacherSpaceBundle(): Promise<TeacherSpaceBundle> {
   const empty: TeacherSpaceBundle = {
-    timetables: [],
     tutorials: [],
     references: [],
     questions: [],
     gradeCalculatorActive: false,
-    siteTimetableActive: false,
     source: "empty",
   };
 
@@ -114,30 +97,16 @@ export async function fetchTeacherSpaceBundle(): Promise<TeacherSpaceBundle> {
     return empty;
   }
 
-  const [
-    timetablesRaw,
-    tutorialsRaw,
-    referencesRaw,
-    questionsRaw,
-    settingsRes,
-    timetableStatusRes,
-  ] = await Promise.all([
-    selectActive<Record<string, unknown>>("teacher_timetables"),
-    selectActive<Record<string, unknown>>("teacher_tutorials"),
-    selectActive<Record<string, unknown>>("teacher_references"),
-    selectActive<Record<string, unknown>>("question_bank"),
-    supabase.from("teacher_space_settings").select("*").eq("id", 1).maybeSingle(),
-    supabase.from("site_timetable_status").select("*").eq("id", 1).maybeSingle(),
-  ]);
+  const [tutorialsRaw, referencesRaw, questionsRaw, settingsRes] =
+    await Promise.all([
+      selectActive<Record<string, unknown>>("teacher_tutorials"),
+      selectActive<Record<string, unknown>>("teacher_references"),
+      selectActive<Record<string, unknown>>("question_bank"),
+      supabase.from("teacher_space_settings").select("*").eq("id", 1).maybeSingle(),
+    ]);
 
   if (settingsRes.error) {
     console.error("[tariq] teacher_space_settings:", settingsRes.error.message);
-  }
-  if (timetableStatusRes.error) {
-    console.error(
-      "[tariq] site_timetable_status:",
-      timetableStatusRes.error.message,
-    );
   }
 
   const gradeCalculatorActive =
@@ -145,45 +114,6 @@ export async function fetchTeacherSpaceBundle(): Promise<TeacherSpaceBundle> {
       ? true
       : (settingsRes.data as { grade_calculator_active?: boolean }).grade_calculator_active !==
         false;
-
-  // Default visible when the row is missing; hide only when explicitly false
-  const siteTimetableActive =
-    timetableStatusRes.error != null
-      ? true
-      : timetableStatusRes.data == null
-        ? true
-        : (timetableStatusRes.data as { is_active?: boolean }).is_active !== false;
-
-  const timetables: TeacherTimetableView[] = timetablesRaw
-    .filter(active)
-    .map((row) => {
-      const rawGrid = row.grid_data;
-      let gridData: Record<string, string[]> | null = null;
-      if (rawGrid && typeof rawGrid === "object" && !Array.isArray(rawGrid)) {
-        const out: Record<string, string[]> = {};
-        for (const [day, periods] of Object.entries(
-          rawGrid as Record<string, unknown>,
-        )) {
-          if (!Array.isArray(periods)) continue;
-          out[day] = periods.map((cell) => String(cell ?? ""));
-        }
-        if (Object.keys(out).length) gridData = out;
-      }
-      return {
-        id: String(row.id),
-        title: String(row.title ?? "").trim() || "جدول حصص",
-        fileUrl: mediaUrl(row.file_url as string),
-        stageId: row.stage_id ? String(row.stage_id) : "",
-        gradeId: row.grade_id ? String(row.grade_id) : "",
-        gridData,
-        periodCount: Math.min(
-          10,
-          Math.max(3, Number(row.period_count ?? 6) || 6),
-        ),
-      };
-    })
-    // Active only (already filtered); hide rows with neither PDF nor grid
-    .filter((item) => Boolean(item.fileUrl) || Boolean(item.gridData));
 
   const tutorials: TeacherTutorialView[] = tutorialsRaw
     .filter(active)
@@ -248,29 +178,23 @@ export async function fetchTeacherSpaceBundle(): Promise<TeacherSpaceBundle> {
     .filter((item) => Boolean(item.questionText));
 
   console.info("[tariq] teacher space bundle:", {
-    timetables: timetables.length,
     tutorials: tutorials.length,
     references: references.length,
     questions: questions.length,
     gradeCalculatorActive,
-    siteTimetableActive,
   });
 
   const hasData =
-    timetables.length > 0 ||
     tutorials.length > 0 ||
     references.length > 0 ||
     questions.length > 0 ||
-    settingsRes.data != null ||
-    timetableStatusRes.data != null;
+    settingsRes.data != null;
 
   return {
-    timetables,
     tutorials,
     references,
     questions,
     gradeCalculatorActive,
-    siteTimetableActive,
     source: hasData ? "supabase" : "empty",
   };
 }
