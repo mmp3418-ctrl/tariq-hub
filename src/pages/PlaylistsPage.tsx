@@ -1,81 +1,103 @@
 import { ExternalLink, Play } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { ResourceCard } from "../components/catalog/ResourceCard.tsx";
-import { StageGradeFlow, type FlowStep } from "../components/catalog/StageGradeFlow.tsx";
-import { VideoPlayerModal } from "../components/study/VideoPlayerModal.tsx";
+import {
+  AcademicBrowseFlow,
+  type AcademicFlowStep,
+} from "../components/catalog/AcademicBrowseFlow.tsx";
 import { CatalogSkeleton } from "../components/ui/CatalogSkeleton.tsx";
 import { ExternalAnchor } from "../components/ui/ExternalAnchor.tsx";
 import { Folio } from "../components/ui/Folio.tsx";
 import { Shell } from "../components/ui/Shell.tsx";
-import { gradeLabel, subjectLabel } from "../i18n/content.ts";
-import { normalizeExternalHref } from "../lib/contactLinks.ts";
 import { usePageTitle } from "../lib/usePageTitle.ts";
 import { usePreferences } from "../lib/preferences.tsx";
-import {
-  useCatalogLessons,
-  useCatalogSource,
-  usePlaylistsByUnit,
-  useUnitsByGrade,
-} from "../services/hooks/useCurriculum.ts";
-import type { CatalogLesson, CurriculumUnit, StageId } from "../services/types.ts";
+import { useAcademicCatalog } from "../services/AcademicCatalogProvider.tsx";
+import type { PlaylistView } from "../services/academicCatalog.ts";
 
-function youtubeWatchUrl(lesson: CatalogLesson) {
-  const raw = (lesson.videoUrl || "").trim();
-  const external = normalizeExternalHref(raw);
-  if (external) return external;
-  if (lesson.playlistId && !lesson.playlistId.includes("://")) {
-    return `https://www.youtube.com/playlist?list=${lesson.playlistId}`;
+function embedUrl(youtubeUrl: string) {
+  try {
+    const url = new URL(youtubeUrl);
+    const list = url.searchParams.get("list");
+    if (list) return `https://www.youtube.com/embed/videoseries?list=${list}`;
+    const video =
+      url.searchParams.get("v") ||
+      (url.hostname.includes("youtu.be") ? url.pathname.replace("/", "") : "");
+    return video ? `https://www.youtube.com/embed/${video}` : "";
+  } catch {
+    return "";
   }
-  return "";
 }
 
 export function PlaylistsPage() {
-  const lessons = useCatalogLessons();
-  const { ready } = useCatalogSource();
-  const { t, locale } = usePreferences();
-  const [step, setStep] = useState<FlowStep>("stages");
-  const [stageId, setStageId] = useState<StageId | null>(null);
+  const {
+    ready,
+    playlistsByGrade,
+    playlistsByUnit,
+    playlistsByStage,
+    unitsByGrade,
+    stages,
+  } = useAcademicCatalog();
+  const { t } = usePreferences();
+  const [step, setStep] = useState<AcademicFlowStep>("stages");
+  const [stageId, setStageId] = useState<string | null>(null);
   const [gradeId, setGradeId] = useState<string | null>(null);
   const [unitId, setUnitId] = useState<string | null>(null);
-  const [active, setActive] = useState<CatalogLesson | null>(null);
+  const [active, setActive] = useState<PlaylistView | null>(null);
   usePageTitle(t("playlists"));
 
-  const units = useUnitsByGrade(gradeId ?? "");
-  const unitPlaylists = usePlaylistsByUnit(unitId ?? "");
+  const units = unitsByGrade(gradeId ?? "");
 
   useEffect(() => {
     if (step !== "units" || !gradeId) return;
     if (units.length === 0) setStep("content");
   }, [gradeId, step, units.length]);
 
-  const gradeLessons = useMemo(
-    () => (gradeId ? lessons.filter((lesson) => lesson.gradeId === gradeId) : []),
-    [gradeId, lessons],
-  );
-
-  const groupedByUnit = useMemo(() => {
-    type Bucket = { unit: CurriculumUnit | null; items: CatalogLesson[] };
-    if (!gradeId) return [] as Bucket[];
-
+  const grouped = useMemo(() => {
     if (unitId) {
-      const unit = units.find((item) => item.id === unitId) ?? null;
-      return [{ unit, items: unitPlaylists }] satisfies Bucket[];
+      const items = playlistsByUnit(unitId);
+      const unit = units.find((u) => u.id === unitId);
+      return [{ key: unitId, title: unit?.name || t("playlistsUnitScope"), items }];
     }
 
-    // Grade-wide view: cluster playlists under their units when possible.
-    const buckets: Bucket[] = units.map((unit) => ({
-      unit,
-      items: gradeLessons.filter((lesson) => lesson.unitId === unit.id),
-    }));
-    const orphan = gradeLessons.filter(
-      (lesson) => !lesson.unitId || !units.some((unit) => unit.id === lesson.unitId),
-    );
-    const result = buckets.filter((bucket) => bucket.items.length > 0);
-    if (orphan.length > 0) result.push({ unit: null, items: orphan });
-    return result;
-  }, [gradeId, gradeLessons, unitId, unitPlaylists, units]);
+    if (gradeId) {
+      const gradeItems = playlistsByGrade(gradeId);
+      const buckets = units.map((unit) => ({
+        key: unit.id,
+        title: unit.name,
+        items: gradeItems.filter(
+          (p) => p.unitId === unit.id || p.unitName === unit.name,
+        ),
+      }));
+      const orphan = gradeItems.filter(
+        (p) =>
+          !units.some((u) => u.id === p.unitId || u.name === p.unitName),
+      );
+      const result = buckets.filter((b) => b.items.length > 0);
+      if (orphan.length > 0) {
+        result.push({ key: "ungrouped", title: t("playlistsUngrouped"), items: orphan });
+      }
+      return result;
+    }
 
-  const totalItems = groupedByUnit.reduce((sum, group) => sum + group.items.length, 0);
+    if (stageId) {
+      const stageItems = playlistsByStage(stageId);
+      const stageName = stages.find((s) => s.id === stageId)?.name || "";
+      return [{ key: stageId, title: stageName || t("playlistsGradeScope"), items: stageItems }];
+    }
+
+    return [];
+  }, [
+    gradeId,
+    playlistsByGrade,
+    playlistsByStage,
+    playlistsByUnit,
+    stageId,
+    stages,
+    t,
+    unitId,
+    units,
+  ]);
+
+  const total = grouped.reduce((sum, g) => sum + g.items.length, 0);
 
   return (
     <Shell className="overflow-x-hidden pb-20">
@@ -96,12 +118,11 @@ export function PlaylistsPage() {
           <CatalogSkeleton rows={4} />
         </div>
       ) : (
-        <StageGradeFlow
+        <AcademicBrowseFlow
           step={step}
           stageId={stageId}
           gradeId={gradeId}
           unitId={unitId}
-          enableUnits
           onSelectStage={(id) => {
             setStageId(id);
             setGradeId(null);
@@ -134,64 +155,65 @@ export function PlaylistsPage() {
           }}
           emptyLabel={t("noResults")}
           content={
-            totalItems === 0 ? (
+            total === 0 ? (
               <p className="text-sm leading-7 text-muted">{t("noGradePlaylists")}</p>
             ) : (
               <div className="space-y-8">
                 <p className="text-sm text-muted">
                   {unitId ? t("playlistsUnitScope") : t("playlistsGradeScope")}
                 </p>
-                {groupedByUnit.map((group) => (
-                  <section key={group.unit?.id || "ungrouped"} className="min-w-0">
+                {grouped.map((group) => (
+                  <section key={group.key} className="min-w-0">
                     <div className="mb-3 flex items-end justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal">
-                          YouTube
-                        </p>
-                        <h3 className="mt-1 text-lg font-bold text-slate-900 dark:text-white">
-                          {group.unit?.title || t("playlistsUngrouped")}
-                        </h3>
-                      </div>
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                        {group.title}
+                      </h3>
                       <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-teal">
                         {group.items.length}
                       </span>
                     </div>
-                    <ul className="grid gap-4 sm:grid-cols-2">
-                      {group.items.map((lesson) => {
-                        const yt = youtubeWatchUrl(lesson);
-                        return (
-                          <li key={lesson.id} className="min-w-0">
-                            <ResourceCard
-                              variant="video"
-                              title={
-                                locale === "en"
-                                  ? `Lesson · ${subjectLabel(locale, lesson.subjectCode, lesson.subjectTitle)}`
-                                  : lesson.title
-                              }
-                              meta={`${lesson.subjectCode} · ${subjectLabel(locale, lesson.subjectCode, lesson.subjectTitle)}`}
-                              description={lesson.description}
-                              coverImage={lesson.coverImage}
-                              cardColor={lesson.cardColor}
-                              iconName={lesson.iconName}
-                              term={lesson.detail}
-                              isComingSoon={lesson.isComingSoon}
-                              onOpen={() => setActive(lesson)}
-                              actions={
-                                yt ? (
-                                  <ExternalAnchor
-                                    href={yt}
-                                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-teal"
-                                  >
-                                    <Play className="size-3.5" />
-                                    {t("openOnYoutube")}
-                                    <ExternalLink className="size-3 opacity-70" />
-                                  </ExternalAnchor>
-                                ) : null
-                              }
-                            />
-                          </li>
-                        );
-                      })}
+                    <ul className="grid gap-3 sm:grid-cols-2">
+                      {group.items.map((item) => (
+                        <li key={item.id}>
+                          <article className="glass flex h-full flex-col gap-3 rounded-2xl p-4 sm:p-5">
+                            <div className="flex flex-wrap gap-2">
+                              <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-bold text-teal">
+                                YouTube
+                              </span>
+                              {item.stageName ? (
+                                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                                  {item.stageName}
+                                </span>
+                              ) : null}
+                              {item.unitName ? (
+                                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                                  {item.unitName}
+                                </span>
+                              ) : null}
+                            </div>
+                            <h4 className="text-base font-bold text-slate-900 dark:text-white">
+                              {item.title}
+                            </h4>
+                            <div className="mt-auto flex flex-wrap gap-3 pt-1 text-sm font-semibold">
+                              <button
+                                type="button"
+                                onClick={() => setActive(item)}
+                                className="inline-flex items-center gap-1.5 text-teal"
+                              >
+                                <Play className="size-4" />
+                                {t("openPlayer")}
+                              </button>
+                              <ExternalAnchor
+                                href={item.youtubeUrl}
+                                className="inline-flex items-center gap-1.5 text-slate-900 dark:text-white"
+                              >
+                                {t("openOnYoutube")}
+                                <ExternalLink className="size-3.5 opacity-70" />
+                              </ExternalAnchor>
+                            </div>
+                          </article>
+                        </li>
+                      ))}
                     </ul>
                   </section>
                 ))}
@@ -201,16 +223,45 @@ export function PlaylistsPage() {
         />
       )}
 
-      <VideoPlayerModal
-        lesson={active}
-        meta={
-          active
-            ? `${gradeLabel(locale, active.gradeId, active.gradeTitle)} · ${subjectLabel(locale, active.subjectCode, active.subjectTitle)}`
-            : ""
-        }
-        onClose={() => setActive(null)}
-        closeLabel={t("closePlayer")}
-      />
+      {active ? (
+        <div className="fixed inset-0 z-[90] flex items-end justify-center sm:items-center">
+          <button
+            type="button"
+            className="absolute inset-0 bg-navy/75 backdrop-blur-md"
+            aria-label={t("closePlayer")}
+            onClick={() => setActive(null)}
+          />
+          <div className="glass-strong relative w-full max-w-[min(56rem,100vw)] overflow-hidden rounded-t-2xl sm:rounded-2xl">
+            <header className="flex items-center justify-between gap-3 border-b border-white/10 bg-[#0F172A] px-4 py-3 text-white sm:px-5">
+              <h2 className="truncate text-lg font-bold">{active.title}</h2>
+              <button
+                type="button"
+                onClick={() => setActive(null)}
+                className="rounded-lg px-3 py-1.5 text-sm font-semibold text-white/80 hover:bg-white/10"
+              >
+                {t("closePlayer")}
+              </button>
+            </header>
+            <div className="aspect-video bg-black">
+              {embedUrl(active.youtubeUrl) ? (
+                <iframe
+                  title={active.title}
+                  src={embedUrl(active.youtubeUrl)}
+                  className="size-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <div className="flex size-full items-center justify-center p-6 text-center text-sm text-white/80">
+                  <ExternalAnchor href={active.youtubeUrl} className="text-emerald">
+                    {t("openOnYoutube")}
+                  </ExternalAnchor>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </Shell>
   );
 }

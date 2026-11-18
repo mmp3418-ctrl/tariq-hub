@@ -1,56 +1,76 @@
+import { Download, Eye } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { ResourceCard, ResourceDownloadAction } from "../components/catalog/ResourceCard.tsx";
-import { StageGradeFlow, type FlowStep } from "../components/catalog/StageGradeFlow.tsx";
-import { PreviewDrawer } from "../components/library/PreviewDrawer.tsx";
+import {
+  AcademicBrowseFlow,
+  type AcademicFlowStep,
+} from "../components/catalog/AcademicBrowseFlow.tsx";
 import { CatalogSkeleton } from "../components/ui/CatalogSkeleton.tsx";
+import { ExternalAnchor } from "../components/ui/ExternalAnchor.tsx";
 import { Folio } from "../components/ui/Folio.tsx";
 import { Shell } from "../components/ui/Shell.tsx";
-import { subjectLabel } from "../i18n/content.ts";
-import { groupLibraryPdfs } from "../lib/libraryGroups.ts";
 import { usePageTitle } from "../lib/usePageTitle.ts";
 import { usePreferences } from "../lib/preferences.tsx";
-import {
-  useCatalogNotes,
-  useCatalogSource,
-  useNotesByUnit,
-  useUnitsByGrade,
-} from "../services/hooks/useCurriculum.ts";
-import type { CatalogNote, StageId } from "../services/types.ts";
+import { useAcademicCatalog } from "../services/AcademicCatalogProvider.tsx";
+import type { MaterialView } from "../services/academicCatalog.ts";
+
+const TYPE_ORDER = [
+  "classbook",
+  "book",
+  "workbook",
+  "notebook",
+  "note",
+  "grammar",
+  "vocabulary",
+  "worksheet",
+];
+
+function groupByType(items: MaterialView[]) {
+  const map = new Map<string, MaterialView[]>();
+  for (const item of items) {
+    const key = item.materialType || "classbook";
+    const list = map.get(key) ?? [];
+    list.push(item);
+    map.set(key, list);
+  }
+  return [...map.entries()].sort((a, b) => {
+    const ai = TYPE_ORDER.indexOf(a[0]);
+    const bi = TYPE_ORDER.indexOf(b[0]);
+    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+  });
+}
 
 export function LibraryPage() {
-  const notes = useCatalogNotes();
-  const { ready } = useCatalogSource();
+  const { ready, materialsByGrade, materialsByUnit, unitsByGrade } = useAcademicCatalog();
   const { t, locale } = usePreferences();
-  const [step, setStep] = useState<FlowStep>("stages");
-  const [stageId, setStageId] = useState<StageId | null>(null);
+  const [step, setStep] = useState<AcademicFlowStep>("stages");
+  const [stageId, setStageId] = useState<string | null>(null);
   const [gradeId, setGradeId] = useState<string | null>(null);
   const [unitId, setUnitId] = useState<string | null>(null);
-  const [preview, setPreview] = useState<CatalogNote | null>(null);
   usePageTitle(t("library"));
 
-  const units = useUnitsByGrade(gradeId ?? "");
-  const unitNotes = useNotesByUnit(unitId ?? "");
+  const units = unitsByGrade(gradeId ?? "");
 
-  // Auto-skip empty units step → show all grade PDFs.
   useEffect(() => {
     if (step !== "units" || !gradeId) return;
     if (units.length === 0) setStep("content");
   }, [gradeId, step, units.length]);
 
-  const gradeNotes = useMemo(
-    () => (gradeId ? notes.filter((note) => note.gradeId === gradeId) : []),
-    [gradeId, notes],
-  );
+  const activeMaterials = useMemo(() => {
+    if (unitId) return materialsByUnit(unitId);
+    if (gradeId) return materialsByGrade(gradeId);
+    return [];
+  }, [gradeId, materialsByGrade, materialsByUnit, unitId]);
 
-  const activeNotes = unitId ? unitNotes : gradeNotes;
-  const groups = useMemo(() => groupLibraryPdfs(activeNotes), [activeNotes]);
+  const groups = useMemo(() => groupByType(activeMaterials), [activeMaterials]);
 
   return (
     <Shell className="overflow-x-hidden pb-20">
       <Folio index="03" label={t("folioLibrary")} />
       <header className="glass max-w-3xl rounded-2xl p-5 pt-7 sm:p-8 sm:pt-10">
         <p className="text-sm text-teal">{t("libraryKind")}</p>
-        <h1 className="mt-3 text-3xl font-bold leading-tight md:text-5xl lg:text-6xl">{t("library")}</h1>
+        <h1 className="mt-3 text-3xl font-bold leading-tight md:text-5xl lg:text-6xl">
+          {t("library")}
+        </h1>
         <p className="mt-4 text-sm leading-7 text-muted sm:mt-5 sm:text-base sm:leading-8">
           {t("libraryLead")}
         </p>
@@ -62,12 +82,11 @@ export function LibraryPage() {
           <CatalogSkeleton rows={3} />
         </div>
       ) : (
-        <StageGradeFlow
+        <AcademicBrowseFlow
           step={step}
           stageId={stageId}
           gradeId={gradeId}
           unitId={unitId}
-          enableUnits
           onSelectStage={(id) => {
             setStageId(id);
             setGradeId(null);
@@ -107,47 +126,53 @@ export function LibraryPage() {
                 <p className="text-sm text-muted">
                   {unitId ? t("libraryUnitScope") : t("libraryGradeScope")}
                 </p>
-                {groups.map((group) => (
-                  <section key={group.id} className="min-w-0">
+                {groups.map(([type, items]) => (
+                  <section key={type} className="min-w-0">
                     <div className="mb-3 flex items-end justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal">
-                          PDF
-                        </p>
-                        <h3 className="mt-1 text-lg font-bold text-slate-900 dark:text-white">
-                          {t(group.titleKey)}
-                        </h3>
-                      </div>
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                        {locale === "en" ? items[0]?.badgeEn : items[0]?.badgeAr}
+                      </h3>
                       <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-teal">
-                        {group.items.length}
+                        {items.length}
                       </span>
                     </div>
-                    <ul className="grid gap-4 sm:grid-cols-2">
-                      {group.items.map((note) => (
-                        <li key={note.id} className="min-w-0">
-                          <ResourceCard
-                            variant="pdf"
-                            title={
-                              locale === "en"
-                                ? `${note.kind === "ملخص" ? t("noteKindSummary") : t("noteKindWorksheet")} ${subjectLabel(locale, note.subjectCode, note.subjectTitle)}`
-                                : note.title
-                            }
-                            meta={`${note.subjectCode} · ${subjectLabel(locale, note.subjectCode, note.subjectTitle)}`}
-                            description={note.description}
-                            coverImage={note.coverImage}
-                            cardColor={note.cardColor}
-                            iconName={note.iconName}
-                            term={note.detail}
-                            isComingSoon={note.isComingSoon}
-                            onOpen={() => setPreview(note)}
-                            actions={
-                              <ResourceDownloadAction
-                                href={note.fileUrl}
-                                fileName={note.fileName}
-                                label={t("downloadDirect")}
-                              />
-                            }
-                          />
+                    <ul className="grid gap-3 sm:grid-cols-2">
+                      {items.map((item) => (
+                        <li key={item.id}>
+                          <article className="glass flex h-full flex-col gap-3 rounded-2xl p-4 sm:p-5">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-bold text-teal">
+                                {locale === "en" ? item.badgeEn : item.badgeAr}
+                              </span>
+                              {item.unitName ? (
+                                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                                  {item.unitName}
+                                </span>
+                              ) : null}
+                            </div>
+                            <h4 className="text-base font-bold text-slate-900 dark:text-white">
+                              {item.title}
+                            </h4>
+                            <div className="mt-auto flex flex-wrap gap-3 pt-1 text-sm font-semibold">
+                              <ExternalAnchor
+                                href={item.pdfUrl}
+                                kind="pdf"
+                                className="inline-flex items-center gap-1.5 text-teal"
+                              >
+                                <Eye className="size-4" />
+                                {t("quickPreview")}
+                              </ExternalAnchor>
+                              <ExternalAnchor
+                                href={item.pdfUrl}
+                                kind="pdf"
+                                download={`${item.title || "material"}.pdf`}
+                                className="inline-flex items-center gap-1.5 text-slate-900 dark:text-white"
+                              >
+                                <Download className="size-4" />
+                                {t("downloadDirect")}
+                              </ExternalAnchor>
+                            </div>
+                          </article>
                         </li>
                       ))}
                     </ul>
@@ -158,8 +183,6 @@ export function LibraryPage() {
           }
         />
       )}
-
-      <PreviewDrawer note={preview} onClose={() => setPreview(null)} />
     </Shell>
   );
 }

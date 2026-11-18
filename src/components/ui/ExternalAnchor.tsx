@@ -1,5 +1,9 @@
 import type { AnchorHTMLAttributes, ReactNode } from "react";
-import { externalLinkProps, normalizeExternalHref } from "../../lib/contactLinks.ts";
+import {
+  externalLinkProps,
+  normalizeExternalHref,
+  normalizeMediaHref,
+} from "../../lib/contactLinks.ts";
 
 type ExternalAnchorProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href"> & {
   href: string;
@@ -13,7 +17,10 @@ type ExternalAnchorProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href">
  * strings never get treated as missing React Router pages.
  */
 export function ExternalAnchor({ href, children, kind = "", className, ...rest }: ExternalAnchorProps) {
-  const safeHref = normalizeExternalHref(href, kind);
+  const safeHref =
+    normalizeExternalHref(href, kind) ||
+    (kind === "pdf" || kind === "file" ? normalizeMediaHref(href) : "") ||
+    normalizeMediaHref(href);
   if (!safeHref) return null;
 
   return (
