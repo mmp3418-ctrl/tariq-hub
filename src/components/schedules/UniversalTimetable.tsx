@@ -74,7 +74,8 @@ export function UniversalTimetable({ embedded = false }: UniversalTimetableProps
           type="button"
           disabled={exporting}
           onClick={() => void handleDownloadPdf()}
-          className="inline-flex h-11 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white shadow-lg shadow-emerald-950/30 transition hover:bg-emerald-500 disabled:opacity-60"
+          className="inline-flex h-11 shrink-0 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white shadow-lg shadow-emerald-950/30 transition hover:bg-emerald-500 disabled:opacity-60"
+          aria-label={t("downloadTimetablePdf")}
         >
           <Download className="size-4" aria-hidden />
           {exporting ? t("teacherExportingPdf") : t("downloadTimetablePdf")}

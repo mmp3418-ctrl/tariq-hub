@@ -8,9 +8,14 @@ export function useSiteTimetableActive() {
 
   const refresh = useCallback(async () => {
     try {
-      setActive(await fetchSiteTimetableActive());
+      const next = await fetchSiteTimetableActive();
+      console.info("[tariq] useSiteTimetableActive: applying", { active: next });
+      setActive(next);
     } catch (err) {
-      console.error("[tariq] useSiteTimetableActive:", err);
+      console.error(
+        "[tariq] useSiteTimetableActive: exception — keeping active=true",
+        err,
+      );
       setActive(true);
     } finally {
       setReady(true);

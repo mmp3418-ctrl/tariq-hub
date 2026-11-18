@@ -1,7 +1,6 @@
 import { CalendarDays } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { UniversalTimetable } from "../components/schedules/UniversalTimetable.tsx";
-import { CatalogSkeleton } from "../components/ui/CatalogSkeleton.tsx";
 import { Folio } from "../components/ui/Folio.tsx";
 import { Shell } from "../components/ui/Shell.tsx";
 import { useSiteTimetableActive } from "../hooks/useSiteTimetableActive.ts";
@@ -13,15 +12,9 @@ export function SchedulesPage() {
   const { ready, active } = useSiteTimetableActive();
   usePageTitle(t("schedulesPageTitle"));
 
-  if (!ready) {
-    return (
-      <Shell className="pb-20">
-        <CatalogSkeleton rows={2} />
-      </Shell>
-    );
-  }
-
-  if (!active) {
+  // Only hide after a confirmed explicit off from Supabase
+  if (ready && !active) {
+    console.info("[tariq] SchedulesPage: timetable disabled — redirecting home");
     return <Navigate to="/" replace />;
   }
 
