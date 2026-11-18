@@ -197,6 +197,7 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
     void hydrate();
   }, [hydrate]);
 
+  // Refetch on tab focus / visibility / SPA navigation so admin edits show quickly.
   useEffect(() => {
     const onFocus = () => {
       void hydrate();
@@ -204,12 +205,32 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
     const onVisible = () => {
       if (document.visibilityState === "visible") void hydrate();
     };
+    const onNav = () => {
+      void hydrate();
+    };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("popstate", onNav);
+    window.addEventListener("hashchange", onNav);
     return () => {
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("popstate", onNav);
+      window.removeEventListener("hashchange", onNav);
     };
+  }, [hydrate]);
+
+  // Lightweight polling while the tab is visible (backup if Realtime is off).
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+
+    const POLL_MS = 12_000;
+    const tick = () => {
+      if (document.visibilityState !== "visible") return;
+      void hydrate();
+    };
+    const id = window.setInterval(tick, POLL_MS);
+    return () => window.clearInterval(id);
   }, [hydrate]);
 
   useEffect(() => {
@@ -230,10 +251,14 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
     };
 
     const channel = client
-      .channel("tariq-site-settings")
+      .channel(`tariq-site-settings-${Date.now()}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "site_settings" }, applyRemote)
       .on("postgres_changes", { event: "*", schema: "public", table: "social_links" }, applyRemote)
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          applyRemote();
+        }
+      });
 
     return () => {
       void client.removeChannel(channel);

@@ -195,6 +195,11 @@ export type DbTeacherSchedule = {
 
 const env = import.meta.env as Record<string, string | undefined>;
 
+/** Live project fallbacks — keep hub online even if .env.local is missing. */
+export const SUPABASE_URL_FALLBACK = "https://nadtedqjgdiefqttuobz.supabase.co";
+export const SUPABASE_ANON_KEY_FALLBACK =
+  "sb_publishable_npY_3zDJCPtQqnwQwVkFaA_OODQR_O3";
+
 /** Accepts raw URLs or accidental markdown links like [https://x](https://x). */
 function cleanEnvValue(value: string | undefined) {
   const raw = value?.trim() ?? "";
@@ -206,8 +211,46 @@ function cleanEnvValue(value: string | undefined) {
   return raw;
 }
 
-const supabaseUrl = cleanEnvValue(env.NEXT_PUBLIC_SUPABASE_URL || env.VITE_SUPABASE_URL);
-const supabaseAnonKey = cleanEnvValue(env.NEXT_PUBLIC_SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY);
+function mergeHeaders(init?: HeadersInit): Headers {
+  const headers = new Headers(init);
+  headers.set("Cache-Control", "no-cache, no-store, must-revalidate");
+  headers.set("Pragma", "no-cache");
+  headers.set("Expires", "0");
+  return headers;
+}
+
+/** Always-fresh fetch for Supabase REST — busts browser/CDN GET caches. */
+export function supabaseLiveFetch(input: RequestInfo | URL, init?: RequestInit) {
+  const rawUrl =
+    typeof input === "string"
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+
+  let nextUrl = rawUrl;
+  try {
+    const parsed = new URL(rawUrl);
+    parsed.searchParams.set("_ts", String(Date.now()));
+    nextUrl = parsed.toString();
+  } catch {
+    const joiner = rawUrl.includes("?") ? "&" : "?";
+    nextUrl = `${rawUrl}${joiner}_ts=${Date.now()}`;
+  }
+
+  return fetch(nextUrl, {
+    ...init,
+    cache: "no-store",
+    headers: mergeHeaders(init?.headers),
+  });
+}
+
+const supabaseUrl =
+  cleanEnvValue(env.NEXT_PUBLIC_SUPABASE_URL || env.VITE_SUPABASE_URL) ||
+  SUPABASE_URL_FALLBACK;
+const supabaseAnonKey =
+  cleanEnvValue(env.NEXT_PUBLIC_SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY) ||
+  SUPABASE_ANON_KEY_FALLBACK;
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
@@ -216,11 +259,7 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
       auth: { persistSession: false, autoRefreshToken: false },
       realtime: { params: { eventsPerSecond: 8 } },
       global: {
-        fetch: (input, init) =>
-          fetch(input, {
-            ...init,
-            cache: "no-store",
-          }),
+        fetch: supabaseLiveFetch,
       },
     })
   : null;
@@ -454,6 +493,7 @@ export async function fetchActiveClassSchedules(): Promise<DbClassSchedule[] | n
 async function fetchSocialLinksTable(): Promise<DbSocialLink[] | null> {
   if (!supabase) return null;
   try {
+    // Live query — global fetch uses cache: 'no-store' + cache-busting `_ts`.
     const { data, error } = await supabase
       .from("social_links")
       .select("*")
@@ -507,6 +547,7 @@ function normalizeSettingsRow(row: Record<string, unknown>): DbSiteSettings {
 /**
  * Loads site_settings (id=1) and prefers public.social_links rows over
  * legacy site_settings.social_links jsonb.
+ * Always uncached (cache: 'no-store' + `_ts` bust via supabaseLiveFetch).
  */
 export async function fetchSiteSettings(): Promise<DbSiteSettings | null> {
   if (!supabase) return null;
@@ -515,6 +556,7 @@ export async function fetchSiteSettings(): Promise<DbSiteSettings | null> {
     let row: Record<string, unknown> | null = null;
 
     const byId = await supabase.from("site_settings").select("*").eq("id", 1).maybeSingle();
+
     if (byId.error) {
       console.error("[tariq] site_settings by id:", byId.error.message, byId.error);
     } else if (byId.data) {
