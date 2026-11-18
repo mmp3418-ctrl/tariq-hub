@@ -3,7 +3,6 @@ import {
   Calculator,
   CalendarDays,
   Clapperboard,
-  Construction,
   Download,
   ExternalLink,
   Eye,
@@ -13,12 +12,14 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PlaylistCover } from "../components/playlists/PlaylistCover.tsx";
+import { UniversalTimetable } from "../components/schedules/UniversalTimetable.tsx";
 import { GradeCalculator } from "../components/teacher/GradeCalculator.tsx";
 import { CatalogSkeleton } from "../components/ui/CatalogSkeleton.tsx";
 import { EmptyIcons, EmptyState } from "../components/ui/EmptyState.tsx";
 import { ExternalAnchor } from "../components/ui/ExternalAnchor.tsx";
 import { Folio } from "../components/ui/Folio.tsx";
 import { Shell } from "../components/ui/Shell.tsx";
+import { useSiteTimetableActive } from "../hooks/useSiteTimetableActive.ts";
 import { usePageTitle } from "../lib/usePageTitle.ts";
 import { usePreferences } from "../lib/preferences.tsx";
 import { useAcademicCatalog } from "../services/AcademicCatalogProvider.tsx";
@@ -76,13 +77,24 @@ export function TeacherSpacePage() {
   const [activeTutorial, setActiveTutorial] = useState<(typeof tutorials)[0] | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
+  const { ready: timetableStatusReady, active: siteTimetableActive } =
+    useSiteTimetableActive();
   usePageTitle(t("teacherSpace"));
 
   useEffect(() => {
     if (!params.get("section")) {
-      setParams({ section: "timetable" }, { replace: true });
+      setParams(
+        { section: siteTimetableActive ? "timetable" : "tutorials" },
+        { replace: true },
+      );
     }
-  }, [params, setParams]);
+  }, [params, setParams, siteTimetableActive]);
+
+  useEffect(() => {
+    if (timetableStatusReady && section === "timetable" && !siteTimetableActive) {
+      setParams({ section: "tutorials" }, { replace: true });
+    }
+  }, [section, setParams, siteTimetableActive, timetableStatusReady]);
 
   const gradeOptions = useMemo(
     () => (filterStage ? gradesByStage(filterStage) : grades),
@@ -125,9 +137,9 @@ export function TeacherSpacePage() {
     { id: "references", label: t("tsReferences"), icon: BookMarked },
     { id: "questions", label: t("tsQuestions"), icon: HelpCircle },
     { id: "calculator", label: t("tsCalculator"), icon: Calculator },
-  ];
+  ].filter((tab) => tab.id !== "timetable" || siteTimetableActive);
 
-  const loading = !ready || !academicReady;
+  const loading = !ready || !academicReady || !timetableStatusReady;
   const showStageGradeFilters =
     section !== "calculator" && section !== "timetable";
 
@@ -211,26 +223,9 @@ export function TeacherSpacePage() {
       <div className="mt-6">
         {loading ? (
           <CatalogSkeleton rows={3} />
-        ) : section === "timetable" ? (
-          <div
-            dir="rtl"
-            className="glass relative overflow-hidden rounded-2xl border border-emerald-400/20 bg-gradient-to-br from-slate-950/80 via-[#0F172A]/90 to-emerald-950/40 p-8 shadow-elevated sm:p-10"
-          >
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(16,185,129,0.12),_transparent_55%)]"
-            />
-            <div className="relative flex flex-col items-center gap-4 text-center">
-              <span className="inline-flex size-14 items-center justify-center rounded-2xl bg-emerald-500/15 ring-1 ring-emerald-400/30">
-                <Construction className="size-7 text-emerald-400" aria-hidden />
-              </span>
-              <h2 className="text-2xl font-extrabold text-fg sm:text-3xl">
-                {t("underDevelopment")}
-              </h2>
-              <p className="max-w-md text-sm leading-7 text-muted sm:text-base">
-                {t("underDevelopmentLead")}
-              </p>
-            </div>
+        ) : section === "timetable" && siteTimetableActive ? (
+          <div className="glass rounded-2xl p-4 sm:p-5">
+            <UniversalTimetable embedded />
           </div>
         ) : section === "tutorials" ? (
           filteredTutorials.length === 0 ? (
