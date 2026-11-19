@@ -1,8 +1,12 @@
+import { isUuid } from "../lib/ids.ts";
 import { isSupabaseConfigured, supabase } from "../lib/supabase.ts";
+
+const STATUS_KEY = "default";
 
 /**
  * Public universal timetable visibility from site_timetable_status.
- * Fail-open: show the timetable unless the row exists and is_active is explicitly false.
+ * Never queries uuid id = "1". Prefers status_key, else first row.
+ * Fail-open: show unless explicitly is_active === false.
  */
 export async function fetchSiteTimetableActive(): Promise<boolean> {
   console.info("[tariq] site_timetable_status: fetch start", {
@@ -10,7 +14,6 @@ export async function fetchSiteTimetableActive(): Promise<boolean> {
     hasClient: Boolean(supabase),
   });
 
-  // No Supabase / missing env → still show the public template
   if (!supabase || !isSupabaseConfigured) {
     console.warn(
       "[tariq] site_timetable_status: Supabase not configured — defaulting active=true",
@@ -19,48 +22,61 @@ export async function fetchSiteTimetableActive(): Promise<boolean> {
   }
 
   try {
-    const { data, error, status, statusText } = await supabase
+    // 1) Prefer stable text key (never uuid "1")
+    const byKey = await supabase
       .from("site_timetable_status")
-      .select("id, is_active")
-      .eq("id", 1)
+      .select("id, status_key, is_active")
+      .eq("status_key", STATUS_KEY)
       .maybeSingle();
 
-    console.info("[tariq] site_timetable_status: response", {
-      status,
-      statusText,
-      data,
-      error: error
-        ? { message: error.message, code: error.code, details: error.details }
+    console.info("[tariq] site_timetable_status: by status_key", {
+      data: byKey.data,
+      error: byKey.error
+        ? { message: byKey.error.message, code: byKey.error.code }
         : null,
     });
 
-    // Table missing, RLS, or network — show timetable
-    if (error) {
-      const msg = error.message ?? "";
-      const missing =
-        /does not exist|schema cache|relation|Could not find the table/i.test(msg) ||
-        error.code === "42P01" ||
-        error.code === "PGRST205";
+    if (!byKey.error && byKey.data) {
+      const active =
+        (byKey.data as { is_active?: boolean }).is_active !== false;
+      console.info("[tariq] site_timetable_status: resolved via status_key", {
+        active,
+      });
+      return active;
+    }
+
+    // 2) Legacy / missing status_key / uuid id mistakes → first row only
+    const any = await supabase
+      .from("site_timetable_status")
+      .select("id, is_active")
+      .limit(1)
+      .maybeSingle();
+
+    console.info("[tariq] site_timetable_status: fallback first row", {
+      data: any.data,
+      error: any.error
+        ? { message: any.error.message, code: any.error.code }
+        : null,
+      idIsUuid: any.data?.id != null ? isUuid(String(any.data.id)) : null,
+    });
+
+    if (any.error) {
       console.warn(
         "[tariq] site_timetable_status: query error — defaulting active=true",
-        { missing, message: msg, code: error.code },
+        any.error.message,
       );
       return true;
     }
 
-    // No row yet — show timetable
-    if (data == null) {
+    if (any.data == null) {
       console.info(
-        "[tariq] site_timetable_status: no row (id=1) — defaulting active=true",
+        "[tariq] site_timetable_status: no rows — defaulting active=true",
       );
       return true;
     }
 
-    const raw = (data as { is_active?: boolean | null }).is_active;
-    // Only hide when explicitly false
-    const active = raw !== false;
-    console.info("[tariq] site_timetable_status: resolved", {
-      raw,
+    const active = (any.data as { is_active?: boolean }).is_active !== false;
+    console.info("[tariq] site_timetable_status: resolved via first row", {
       active,
     });
     return active;
