@@ -2,19 +2,17 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Languages, Menu, Moon, Search, Sun, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { useSiteTimetableActive } from "../../hooks/useSiteTimetableActive.ts";
 import { usePreferences } from "../../lib/preferences.tsx";
 import { useSearch } from "../../lib/search.tsx";
 import { useSiteSettings } from "../../services/siteSettings.tsx";
 import { Mark } from "../brand/Mark.tsx";
 import { ContactQuickLinks } from "./ContactQuickLinks.tsx";
 
-const allRoutes = [
+const routes = [
   { to: "/", key: "home", end: true },
   { to: "/grades", key: "grades", end: false },
   { to: "/library", key: "library", end: false },
   { to: "/playlists", key: "playlists", end: false },
-  { to: "/schedules", key: "schedulesPageTitle", end: false },
   { to: "/teacher-space", key: "teacherSpace", end: false },
   { to: "/contact", key: "contact", end: false },
 ] as const;
@@ -25,10 +23,6 @@ export function SiteNav({ sticky = true }: { sticky?: boolean }) {
   const { t, theme, toggleTheme, locale, toggleLocale, dir } = usePreferences();
   const { openSearch } = useSearch();
   const { logoUrl = "" } = useSiteSettings() ?? {};
-  const { active: timetableActive } = useSiteTimetableActive();
-  const routes = allRoutes.filter(
-    (route) => route.to !== "/schedules" || timetableActive,
-  );
   const [open, setOpen] = useState(false);
   const CtaArrow = dir === "rtl" ? ArrowLeft : ArrowRight;
   const isDark = theme === "dark";

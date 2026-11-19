@@ -450,21 +450,26 @@ export type GradeCalculatorToolsResult = {
 export async function fetchGradeCalculatorTools(): Promise<GradeCalculatorToolsResult | null> {
   if (!supabase) return null;
 
-  const { data, error } = await supabase
-    .from("grade_calculator_tools")
-    .select("*")
-    .order("created_at", { ascending: true });
+  try {
+    const { data, error } = await supabase
+      .from("grade_calculator_tools")
+      .select("*")
+      .order("created_at", { ascending: true });
 
-  if (error) {
-    console.warn("[tariq] grade_calculator_tools fallback:", error.message);
+    if (error) {
+      console.warn("[tariq] grade_calculator_tools fallback:", error.message);
+      return null;
+    }
+
+    const rows = (data as DbGradeCalculatorTool[] | null) ?? [];
+    return {
+      configured: rows.length > 0,
+      active: rows.filter(isRowActive),
+    };
+  } catch (err) {
+    console.warn("[tariq] grade_calculator_tools exception:", err);
     return null;
   }
-
-  const rows = (data as DbGradeCalculatorTool[] | null) ?? [];
-  return {
-    configured: rows.length > 0,
-    active: rows.filter(isRowActive),
-  };
 }
 
 export async function fetchActiveClassSchedules(): Promise<DbClassSchedule[] | null> {

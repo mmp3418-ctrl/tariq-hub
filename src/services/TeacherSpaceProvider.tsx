@@ -104,6 +104,11 @@ export function TeacherSpaceProvider({ children }: { children: ReactNode }) {
         { event: "*", schema: "public", table: "teacher_space_settings" },
         refresh,
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "site_tool_settings" },
+        refresh,
+      )
       .subscribe();
     return () => {
       void client.removeChannel(channel);
@@ -125,7 +130,8 @@ export function TeacherSpaceProvider({ children }: { children: ReactNode }) {
     const questions = Array.isArray(bundle.questions) ? bundle.questions : [];
     return {
       ready,
-      gradeCalculatorActive: bundle.gradeCalculatorActive,
+      // Coerce so undefined/null never flips the UI into a "disabled" crash path.
+      gradeCalculatorActive: bundle.gradeCalculatorActive !== false,
       tutorials,
       references,
       questions,
@@ -152,7 +158,8 @@ export function useTeacherSpace() {
     console.error("useTeacherSpace must be used within TeacherSpaceProvider");
     return {
       ready: true,
-      gradeCalculatorActive: false,
+      // Fail-open outside provider so a missing context never blocks the hub.
+      gradeCalculatorActive: true,
       tutorials: [],
       references: [],
       questions: [],

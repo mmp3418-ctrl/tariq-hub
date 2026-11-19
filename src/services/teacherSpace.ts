@@ -1,5 +1,6 @@
 import { normalizeExternalHref, normalizeMediaHref } from "../lib/contactLinks.ts";
 import { isSupabaseConfigured, supabase } from "../lib/supabase.ts";
+import { fetchGradeCalculatorActive } from "./gradeCalculatorStatus.ts";
 
 export type TeacherTutorialView = {
   id: string;
@@ -88,7 +89,9 @@ export async function fetchTeacherSpaceBundle(): Promise<TeacherSpaceBundle> {
     tutorials: [],
     references: [],
     questions: [],
-    gradeCalculatorActive: false,
+    // Fail-open: never treat a fetch failure as "disabled" — that path
+    // previously left the hub in a broken calculator-only catch-all state.
+    gradeCalculatorActive: true,
     source: "empty",
   };
 
@@ -97,104 +100,98 @@ export async function fetchTeacherSpaceBundle(): Promise<TeacherSpaceBundle> {
     return empty;
   }
 
-  const [tutorialsRaw, referencesRaw, questionsRaw, settingsRes] =
-    await Promise.all([
-      selectActive<Record<string, unknown>>("teacher_tutorials"),
-      selectActive<Record<string, unknown>>("teacher_references"),
-      selectActive<Record<string, unknown>>("question_bank"),
-      supabase.from("teacher_space_settings").select("*").eq("id", 1).maybeSingle(),
-    ]);
+  try {
+    const [tutorialsRaw, referencesRaw, questionsRaw, gradeCalculatorActive] =
+      await Promise.all([
+        selectActive<Record<string, unknown>>("teacher_tutorials"),
+        selectActive<Record<string, unknown>>("teacher_references"),
+        selectActive<Record<string, unknown>>("question_bank"),
+        fetchGradeCalculatorActive(),
+      ]);
 
-  if (settingsRes.error) {
-    console.error("[tariq] teacher_space_settings:", settingsRes.error.message);
-  }
-
-  const gradeCalculatorActive =
-    settingsRes.data == null
-      ? true
-      : (settingsRes.data as { grade_calculator_active?: boolean }).grade_calculator_active !==
-        false;
-
-  const tutorials: TeacherTutorialView[] = tutorialsRaw
-    .filter(active)
-    .map((row) => ({
-      id: String(row.id),
-      title: String(row.title ?? "").trim() || "شرح",
-      youtubeUrl: normalizeExternalHref(String(row.youtube_url ?? "")) || "",
-      coverImageUrl: mediaUrl(row.cover_image_url as string),
-      stageId: row.stage_id ? String(row.stage_id) : "",
-      gradeId: row.grade_id ? String(row.grade_id) : "",
-    }))
-    .filter((item) => Boolean(item.youtubeUrl));
-
-  const references: TeacherReferenceView[] = referencesRaw
-    .filter(active)
-    .map((row) => ({
-      id: String(row.id),
-      title: String(row.title ?? "").trim() || "مرجع",
-      fileUrl: mediaUrl(row.file_url as string),
-      stageId: row.stage_id ? String(row.stage_id) : "",
-      gradeId: row.grade_id ? String(row.grade_id) : "",
-    }))
-    .filter((item) => Boolean(item.fileUrl));
-
-  const questions: QuestionBankView[] = questionsRaw
-    .filter(active)
-    .map((row) => {
-      let optionA = String(row.option_a ?? "").trim();
-      let optionB = String(row.option_b ?? "").trim();
-      let optionC = String(row.option_c ?? "").trim();
-      let optionD = String(row.option_d ?? "").trim();
-      let correctAnswer: "a" | "b" | "c" | "d" = "a";
-
-      const opts = Array.isArray(row.options)
-        ? (row.options as unknown[]).map((x) => String(x ?? "").trim())
-        : [];
-      if (opts.length > 0) {
-        optionA = opts[0] || optionA;
-        optionB = opts[1] || optionB;
-        optionC = opts[2] || optionC;
-        optionD = opts[3] || optionD;
-        const idx = Number(row.correct_index ?? 0);
-        correctAnswer = (["a", "b", "c", "d"] as const)[Math.min(Math.max(idx, 0), 3)];
-      } else {
-        const ans = String(row.correct_answer ?? "a").toLowerCase();
-        correctAnswer =
-          ans === "b" || ans === "c" || ans === "d" ? ans : "a";
-      }
-
-      return {
+    const tutorials: TeacherTutorialView[] = tutorialsRaw
+      .filter(active)
+      .map((row) => ({
         id: String(row.id),
-        questionText: String(row.question_text ?? "").trim(),
-        optionA,
-        optionB,
-        optionC,
-        optionD,
-        correctAnswer,
+        title: String(row.title ?? "").trim() || "شرح",
+        youtubeUrl: normalizeExternalHref(String(row.youtube_url ?? "")) || "",
+        coverImageUrl: mediaUrl(row.cover_image_url as string),
         stageId: row.stage_id ? String(row.stage_id) : "",
         gradeId: row.grade_id ? String(row.grade_id) : "",
-      };
-    })
-    .filter((item) => Boolean(item.questionText));
+      }))
+      .filter((item) => Boolean(item.youtubeUrl));
 
-  console.info("[tariq] teacher space bundle:", {
-    tutorials: tutorials.length,
-    references: references.length,
-    questions: questions.length,
-    gradeCalculatorActive,
-  });
+    const references: TeacherReferenceView[] = referencesRaw
+      .filter(active)
+      .map((row) => ({
+        id: String(row.id),
+        title: String(row.title ?? "").trim() || "مرجع",
+        fileUrl: mediaUrl(row.file_url as string),
+        stageId: row.stage_id ? String(row.stage_id) : "",
+        gradeId: row.grade_id ? String(row.grade_id) : "",
+      }))
+      .filter((item) => Boolean(item.fileUrl));
 
-  const hasData =
-    tutorials.length > 0 ||
-    references.length > 0 ||
-    questions.length > 0 ||
-    settingsRes.data != null;
+    const questions: QuestionBankView[] = questionsRaw
+      .filter(active)
+      .map((row) => {
+        let optionA = String(row.option_a ?? "").trim();
+        let optionB = String(row.option_b ?? "").trim();
+        let optionC = String(row.option_c ?? "").trim();
+        let optionD = String(row.option_d ?? "").trim();
+        let correctAnswer: "a" | "b" | "c" | "d" = "a";
 
-  return {
-    tutorials,
-    references,
-    questions,
-    gradeCalculatorActive,
-    source: hasData ? "supabase" : "empty",
-  };
+        const opts = Array.isArray(row.options)
+          ? (row.options as unknown[]).map((x) => String(x ?? "").trim())
+          : [];
+        if (opts.length > 0) {
+          optionA = opts[0] || optionA;
+          optionB = opts[1] || optionB;
+          optionC = opts[2] || optionC;
+          optionD = opts[3] || optionD;
+          const idx = Number(row.correct_index ?? 0);
+          correctAnswer = (["a", "b", "c", "d"] as const)[
+            Math.min(Math.max(idx, 0), 3)
+          ];
+        } else {
+          const ans = String(row.correct_answer ?? "a").toLowerCase();
+          correctAnswer =
+            ans === "b" || ans === "c" || ans === "d" ? ans : "a";
+        }
+
+        return {
+          id: String(row.id),
+          questionText: String(row.question_text ?? "").trim(),
+          optionA,
+          optionB,
+          optionC,
+          optionD,
+          correctAnswer,
+          stageId: row.stage_id ? String(row.stage_id) : "",
+          gradeId: row.grade_id ? String(row.grade_id) : "",
+        };
+      })
+      .filter((item) => Boolean(item.questionText));
+
+    console.info("[tariq] teacher space bundle:", {
+      tutorials: tutorials.length,
+      references: references.length,
+      questions: questions.length,
+      gradeCalculatorActive,
+    });
+
+    const hasData =
+      tutorials.length > 0 || references.length > 0 || questions.length > 0;
+
+    return {
+      tutorials,
+      references,
+      questions,
+      gradeCalculatorActive,
+      source: hasData ? "supabase" : "empty",
+    };
+  } catch (err) {
+    console.error("[tariq] teacher space bundle exception:", err);
+    return empty;
+  }
 }

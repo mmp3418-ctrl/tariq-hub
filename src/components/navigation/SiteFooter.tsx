@@ -1,16 +1,14 @@
 import { Link } from "react-router-dom";
-import { useSiteTimetableActive } from "../../hooks/useSiteTimetableActive.ts";
 import { usePreferences } from "../../lib/preferences.tsx";
 import { useSiteSettings } from "../../services/siteSettings.tsx";
 import { Mark } from "../brand/Mark.tsx";
 import { Shell } from "../ui/Shell.tsx";
 import { ContactQuickLinks } from "./ContactQuickLinks.tsx";
 
-const allLinks = [
+const links = [
   { to: "/grades", key: "grades" },
   { to: "/library", key: "library" },
   { to: "/playlists", key: "playlists" },
-  { to: "/schedules", key: "schedulesPageTitle" },
   { to: "/teacher-space", key: "teacherSpace" },
   { to: "/contact", key: "contact" },
 ] as const;
@@ -20,10 +18,6 @@ const allLinks = [
 export function SiteFooter() {
   const { t } = usePreferences();
   const { logoUrl = "" } = useSiteSettings() ?? {};
-  const { active: timetableActive } = useSiteTimetableActive();
-  const links = allLinks.filter(
-    (link) => link.to !== "/schedules" || timetableActive,
-  );
 
   return (
     <footer className="mt-auto overflow-x-hidden border-t border-line">

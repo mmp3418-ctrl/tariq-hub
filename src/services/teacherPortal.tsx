@@ -59,17 +59,22 @@ export function TeacherPortalProvider({ children }: { children: ReactNode }) {
       setReady(true);
       return;
     }
-    const [res, tools, teachers, classes] = await Promise.all([
-      fetchTeacherResources(),
-      fetchGradeCalculatorTools(),
-      fetchActiveTeacherSchedules(),
-      fetchActiveClassSchedules(),
-    ]);
-    if (res) setResources(res);
-    applyCalculator(tools);
-    if (teachers) setTeacherSchedules(teachers);
-    if (classes) setClassSchedules(classes);
-    setReady(true);
+    try {
+      const [res, tools, teachers, classes] = await Promise.all([
+        fetchTeacherResources(),
+        fetchGradeCalculatorTools(),
+        fetchActiveTeacherSchedules(),
+        fetchActiveClassSchedules(),
+      ]);
+      if (res) setResources(res);
+      applyCalculator(tools);
+      if (teachers) setTeacherSchedules(teachers);
+      if (classes) setClassSchedules(classes);
+    } catch (err) {
+      console.warn("[tariq] TeacherPortalProvider refresh:", err);
+    } finally {
+      setReady(true);
+    }
   }, [applyCalculator]);
 
   useEffect(() => {

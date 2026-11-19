@@ -87,6 +87,12 @@ export function TeacherSpacePage() {
     }
   }, [params, setParams]);
 
+  useEffect(() => {
+    if (!gradeCalculatorActive && section === "calculator") {
+      setParams({ section: "timetable" }, { replace: true });
+    }
+  }, [gradeCalculatorActive, section, setParams]);
+
   const gradeOptions = useMemo(
     () => (filterStage ? gradesByStage(filterStage) : grades),
     [filterStage, grades, gradesByStage],
@@ -133,7 +139,9 @@ export function TeacherSpacePage() {
     { id: "tutorials", label: t("tsTutorials"), icon: Clapperboard },
     { id: "references", label: t("tsReferences"), icon: BookMarked },
     { id: "questions", label: t("tsQuestions"), icon: HelpCircle },
-    { id: "calculator", label: t("tsCalculator"), icon: Calculator },
+    ...(gradeCalculatorActive
+      ? ([{ id: "calculator", label: t("tsCalculator"), icon: Calculator }] as TeacherSpaceTab[])
+      : []),
   ];
 
   const loading = !ready || !academicReady || !timetableStatusReady;
@@ -340,15 +348,23 @@ export function TeacherSpacePage() {
               t={t}
             />
           )
-        ) : !gradeCalculatorActive ? (
+        ) : section === "calculator" ? (
+          gradeCalculatorActive ? (
+            <GradeCalculator />
+          ) : (
+            <EmptyState
+              icon={EmptyIcons.stages}
+              title={t("tsCalculatorClosed")}
+              description={t("tsCalculatorClosedLead")}
+              tone="soft"
+            />
+          )
+        ) : (
           <EmptyState
             icon={EmptyIcons.stages}
-            title={t("tsCalculatorClosed")}
-            description={t("tsCalculatorClosedLead")}
+            title={t("tsEmptyLead")}
             tone="soft"
           />
-        ) : (
-          <GradeCalculator />
         )}
       </div>
 

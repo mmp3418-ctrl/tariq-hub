@@ -9,7 +9,6 @@ import { HomePage } from "./pages/HomePage.tsx";
 import { LibraryPage } from "./pages/LibraryPage.tsx";
 import { NotFoundPage } from "./pages/NotFoundPage.tsx";
 import { PlaylistsPage } from "./pages/PlaylistsPage.tsx";
-import { SchedulesPage } from "./pages/SchedulesPage.tsx";
 import { TeacherLibraryPage } from "./pages/TeacherLibraryPage.tsx";
 import { TeacherPlaylistsPage } from "./pages/TeacherPlaylistsPage.tsx";
 import { TeacherSpacePage } from "./pages/TeacherSpacePage.tsx";
@@ -43,7 +42,10 @@ export default function App() {
           <Route path="grades/:gradeId" element={<GradeDetailsPage />} />
           <Route path="library" element={<LibraryPage />} />
           <Route path="playlists" element={<PlaylistsPage />} />
-          <Route path="schedules" element={<SchedulesPage />} />
+          <Route
+            path="schedules"
+            element={<Navigate to="/teacher-space?section=timetable" replace />}
+          />
           <Route path="grade-calculator" element={<GradeCalculatorPage />} />
           <Route path="teacher-space" element={<TeacherSpacePage />} />
           <Route path="teacher-space/library" element={<TeacherLibraryPage />} />
