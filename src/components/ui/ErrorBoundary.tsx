@@ -9,10 +9,7 @@ type State = {
   hasError: boolean;
 };
 
-/**
- * Catches render crashes (e.g. unexpected null from Supabase-shaped data)
- * so the shell never blanks out.
- */
+/** Catches render crashes so the shell never blanks out. */
 export class ErrorBoundary extends Component<Props, State> {
   state: State = { hasError: false };
 
@@ -37,7 +34,7 @@ export class ErrorBoundary extends Component<Props, State> {
             حدث خطأ غير متوقع
           </p>
           <p className="mt-2 text-sm leading-7 text-slate-600 dark:text-slate-300">
-            تعذر عرض هذا الجزء مؤقتاً. حدّث الصفحة للمحاولة من جديد.
+            تعذّر عرض هذا الجزء مؤقتاً. حدّث الصفحة للمحاولة من جديد.
           </p>
           <button
             type="button"

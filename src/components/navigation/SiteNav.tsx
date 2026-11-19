@@ -63,11 +63,9 @@ export function SiteNav({ sticky = true }: { sticky?: boolean }) {
       </a>
 
       <div className="glass-nav relative z-50 mx-auto max-w-6xl">
-        <div className="flex h-12 items-center justify-between gap-2 px-2.5 sm:h-[3.25rem] sm:gap-3 sm:px-3">
-          <Link to="/" className="flex min-w-0 items-center gap-2 rounded-md" aria-label={t("brandAria")}>
-            <span className="origin-center scale-90 sm:scale-100">
-              <Mark logoUrl={logoUrl} />
-            </span>
+        <div className="flex h-14 items-center justify-between gap-2 px-2.5 sm:h-16 sm:gap-3 sm:px-3">
+          <Link to="/" className="flex min-w-0 items-center gap-2.5 rounded-md" aria-label={t("brandAria")}>
+            <Mark logoUrl={logoUrl} className="h-10 w-auto sm:h-12" alt={t("brandName")} />
             <span className="flex min-w-0 flex-col leading-none">
               <span className="font-display text-[9px] font-semibold tracking-[0.18em] text-emerald">{t("brandMarkEn")}</span>
               <span className={`mt-0.5 truncate text-sm font-bold sm:text-[15px] ${isDark ? "text-white" : "text-slate-900"}`}>
